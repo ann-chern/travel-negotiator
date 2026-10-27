@@ -3,7 +3,11 @@ name = "ds-delo-semeinoe"
 version = "0.1.0"
 requires-python = ">=3.12,<3.13"
 dependencies = [
+    "langgraph>=1.0,<2",
+    "mcp>=2,<3",
+    "openai>=3.39.0",
     "pydantic==2.13.5",
+    "tzdata>=2026.5",
 ]
 
 [dependency-groups]

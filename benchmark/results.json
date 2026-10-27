@@ -1,0 +1,1457 @@
+{
+  "settings": {
+    "models": [
+      "gpt://b1g84adtmei0bj2cb7ss/aliceai-llm-flash",
+      "gpt://b1g84adtmei0bj2cb7ss/deepseek-v4.1-flash"
+    ],
+    "format": "json_schema",
+    "today": "2026-10-27",
+    "repeat": 1
+  },
+  "models": {
+    "gpt://b1g84adtmei0bj2cb7ss/aliceai-llm-flash": {
+      "summary": {
+        "cases": 20,
+        "valid_schema_rate": 1.0,
+        "field_accuracy_conditional": 0.861,
+        "field_accuracy_all_cases": 0.861,
+        "exact_case_rate": 0.6,
+        "latency_median_s": 4.46,
+        "latency_p95_s": 8.065,
+        "input_tokens": 4719,
+        "output_tokens": 2009
+      },
+      "cases": [
+        {
+          "id": "basic",
+          "group": "initial",
+          "repeat": 0,
+          "ok": true,
+          "latency_s": 5.036,
+          "score": {
+            "passed": 6,
+            "total": 6,
+            "details": {
+              "expected.origin": true,
+              "expected.departure_date": true,
+              "expected.nights": true,
+              "expected.adults": true,
+              "expected.budget_rub": true,
+              "expected.budget_hard": true
+            },
+            "exact_case": true
+          },
+          "tokens_in": 240,
+          "tokens_out": 109,
+          "output": {
+            "origin": "Москва",
+            "destination": null,
+            "departure_date": "2026-11-10",
+            "nights": 5,
+            "adults": 2,
+            "budget_rub": 90000,
+            "budget_hard": true,
+            "clear_fields": [],
+            "allow_nights": false,
+            "allow_date_shift": false,
+            "allow_budget_increase": false,
+            "intent": "plan",
+            "unsupported_requirements": []
+          }
+        },
+        {
+          "id": "destination",
+          "group": "initial",
+          "repeat": 0,
+          "ok": true,
+          "latency_s": 3.119,
+          "score": {
+            "passed": 4,
+            "total": 4,
+            "details": {
+              "expected.destination": true,
+              "expected.origin": true,
+              "expected.nights": true,
+              "expected.departure_date": true
+            },
+            "exact_case": true
+          },
+          "tokens_in": 230,
+          "tokens_out": 105,
+          "output": {
+            "origin": "Москва",
+            "destination": "Анталья",
+            "departure_date": "2026-12-12",
+            "nights": 7,
+            "adults": null,
+            "budget_rub": null,
+            "budget_hard": null,
+            "clear_fields": [],
+            "allow_nights": false,
+            "allow_date_shift": false,
+            "allow_budget_increase": false,
+            "intent": "plan",
+            "unsupported_requirements": []
+          }
+        },
+        {
+          "id": "missing_origin",
+          "group": "missing",
+          "repeat": 0,
+          "ok": true,
+          "latency_s": 4.543,
+          "score": {
+            "passed": 4,
+            "total": 4,
+            "details": {
+              "expected.nights": true,
+              "expected.adults": true,
+              "null.origin": true,
+              "null.departure_date": true
+            },
+            "exact_case": true
+          },
+          "tokens_in": 222,
+          "tokens_out": 98,
+          "output": {
+            "origin": null,
+            "destination": null,
+            "departure_date": null,
+            "nights": 6,
+            "adults": 2,
+            "budget_rub": null,
+            "budget_hard": null,
+            "clear_fields": [],
+            "allow_nights": false,
+            "allow_date_shift": false,
+            "allow_budget_increase": false,
+            "intent": "revise",
+            "unsupported_requirements": [
+              "к морю"
+            ]
+          }
+        },
+        {
+          "id": "missing_date",
+          "group": "missing",
+          "repeat": 0,
+          "ok": true,
+          "latency_s": 3.921,
+          "score": {
+            "passed": 3,
+            "total": 4,
+            "details": {
+              "expected.origin": true,
+              "expected.destination": false,
+              "expected.nights": true,
+              "null.departure_date": true
+            },
+            "exact_case": false
+          },
+          "tokens_in": 218,
+          "tokens_out": 94,
+          "output": {
+            "origin": "Москва",
+            "destination": "Istanbul",
+            "departure_date": null,
+            "nights": 5,
+            "adults": null,
+            "budget_rub": null,
+            "budget_hard": null,
+            "clear_fields": [],
+            "allow_nights": false,
+            "allow_date_shift": false,
+            "allow_budget_increase": false,
+            "intent": "plan",
+            "unsupported_requirements": []
+          }
+        },
+        {
+          "id": "negation",
+          "group": "unsupported",
+          "repeat": 0,
+          "ok": true,
+          "latency_s": 3.387,
+          "score": {
+            "passed": 5,
+            "total": 5,
+            "details": {
+              "null.origin": true,
+              "null.departure_date": true,
+              "null.nights": true,
+              "unsupported.пересад": true,
+              "unsupported.собак": true
+            },
+            "exact_case": true
+          },
+          "tokens_in": 223,
+          "tokens_out": 100,
+          "output": {
+            "origin": null,
+            "destination": null,
+            "departure_date": null,
+            "nights": null,
+            "adults": null,
+            "budget_rub": null,
+            "budget_hard": null,
+            "clear_fields": [],
+            "allow_nights": false,
+            "allow_date_shift": false,
+            "allow_budget_increase": false,
+            "intent": "plan",
+            "unsupported_requirements": [
+              "отель должен принимать собак",
+              "без пересадок"
+            ]
+          }
+        },
+        {
+          "id": "replan_nights",
+          "group": "patch",
+          "repeat": 0,
+          "ok": true,
+          "latency_s": 2.188,
+          "score": {
+            "passed": 5,
+            "total": 6,
+            "details": {
+              "expected.nights": true,
+              "expected.intent": false,
+              "null.origin": true,
+              "null.destination": true,
+              "null.departure_date": true,
+              "null.budget_rub": true
+            },
+            "exact_case": false
+          },
+          "tokens_in": 271,
+          "tokens_out": 92,
+          "output": {
+            "origin": null,
+            "destination": null,
+            "departure_date": null,
+            "nights": 3,
+            "adults": null,
+            "budget_rub": null,
+            "budget_hard": null,
+            "clear_fields": [],
+            "allow_nights": false,
+            "allow_date_shift": false,
+            "allow_budget_increase": false,
+            "intent": "plan",
+            "unsupported_requirements": []
+          }
+        },
+        {
+          "id": "replan_budget",
+          "group": "patch",
+          "repeat": 0,
+          "ok": true,
+          "latency_s": 3.774,
+          "score": {
+            "passed": 4,
+            "total": 5,
+            "details": {
+              "expected.budget_rub": true,
+              "expected.intent": false,
+              "null.origin": true,
+              "null.departure_date": true,
+              "null.nights": true
+            },
+            "exact_case": false
+          },
+          "tokens_in": 269,
+          "tokens_out": 96,
+          "output": {
+            "origin": null,
+            "destination": null,
+            "departure_date": null,
+            "nights": null,
+            "adults": null,
+            "budget_rub": 70000,
+            "budget_hard": null,
+            "clear_fields": [],
+            "allow_nights": false,
+            "allow_date_shift": false,
+            "allow_budget_increase": false,
+            "intent": "other",
+            "unsupported_requirements": []
+          }
+        },
+        {
+          "id": "remove_destination",
+          "group": "patch",
+          "repeat": 0,
+          "ok": true,
+          "latency_s": 5.63,
+          "score": {
+            "passed": 2,
+            "total": 5,
+            "details": {
+              "expected.intent": true,
+              "null.destination": false,
+              "null.origin": false,
+              "null.nights": true,
+              "clear.destination": false
+            },
+            "exact_case": false
+          },
+          "tokens_in": 237,
+          "tokens_out": 99,
+          "output": {
+            "origin": "clear_fields",
+            "destination": "clear_fields",
+            "departure_date": null,
+            "nights": null,
+            "adults": null,
+            "budget_rub": null,
+            "budget_hard": null,
+            "clear_fields": [],
+            "allow_nights": false,
+            "allow_date_shift": false,
+            "allow_budget_increase": false,
+            "intent": "revise",
+            "unsupported_requirements": []
+          }
+        },
+        {
+          "id": "replan_date",
+          "group": "patch",
+          "repeat": 0,
+          "ok": true,
+          "latency_s": 5.326,
+          "score": {
+            "passed": 4,
+            "total": 4,
+            "details": {
+              "expected.departure_date": true,
+              "expected.intent": true,
+              "null.origin": true,
+              "null.nights": true
+            },
+            "exact_case": true
+          },
+          "tokens_in": 258,
+          "tokens_out": 103,
+          "output": {
+            "origin": null,
+            "destination": null,
+            "departure_date": "2026-11-14",
+            "nights": null,
+            "adults": null,
+            "budget_rub": null,
+            "budget_hard": null,
+            "clear_fields": [],
+            "allow_nights": false,
+            "allow_date_shift": false,
+            "allow_budget_increase": false,
+            "intent": "revise",
+            "unsupported_requirements": []
+          }
+        },
+        {
+          "id": "approve_relax_nights",
+          "group": "flex",
+          "repeat": 0,
+          "ok": true,
+          "latency_s": 4.566,
+          "score": {
+            "passed": 2,
+            "total": 2,
+            "details": {
+              "expected.allow_nights": true,
+              "null.nights": true
+            },
+            "exact_case": true
+          },
+          "tokens_in": 225,
+          "tokens_out": 93,
+          "output": {
+            "origin": null,
+            "destination": null,
+            "departure_date": null,
+            "nights": null,
+            "adults": null,
+            "budget_rub": null,
+            "budget_hard": null,
+            "clear_fields": [],
+            "allow_nights": true,
+            "allow_date_shift": true,
+            "allow_budget_increase": false,
+            "intent": "revise",
+            "unsupported_requirements": []
+          }
+        },
+        {
+          "id": "approve_relax_budget",
+          "group": "flex",
+          "repeat": 0,
+          "ok": true,
+          "latency_s": 4.376,
+          "score": {
+            "passed": 1,
+            "total": 2,
+            "details": {
+              "expected.allow_budget_increase": false,
+              "null.budget_rub": true
+            },
+            "exact_case": false
+          },
+          "tokens_in": 253,
+          "tokens_out": 108,
+          "output": {
+            "origin": null,
+            "destination": null,
+            "departure_date": null,
+            "nights": null,
+            "adults": null,
+            "budget_rub": null,
+            "budget_hard": null,
+            "clear_fields": [],
+            "allow_nights": false,
+            "allow_date_shift": false,
+            "allow_budget_increase": false,
+            "intent": "revise",
+            "unsupported_requirements": [
+              "показать варианты чуть дороже при бюджете 100000 RUB"
+            ]
+          }
+        },
+        {
+          "id": "approve_shift",
+          "group": "flex",
+          "repeat": 0,
+          "ok": true,
+          "latency_s": 5.474,
+          "score": {
+            "passed": 3,
+            "total": 3,
+            "details": {
+              "expected.allow_date_shift": true,
+              "null.departure_date": true,
+              "null.nights": true
+            },
+            "exact_case": true
+          },
+          "tokens_in": 245,
+          "tokens_out": 98,
+          "output": {
+            "origin": null,
+            "destination": null,
+            "departure_date": null,
+            "nights": null,
+            "adults": null,
+            "budget_rub": null,
+            "budget_hard": null,
+            "clear_fields": [],
+            "allow_nights": true,
+            "allow_date_shift": true,
+            "allow_budget_increase": false,
+            "intent": "revise",
+            "unsupported_requirements": [
+              "сэкономить деньги"
+            ]
+          }
+        },
+        {
+          "id": "rub_unit",
+          "group": "initial",
+          "repeat": 0,
+          "ok": true,
+          "latency_s": 8.065,
+          "score": {
+            "passed": 6,
+            "total": 6,
+            "details": {
+              "expected.origin": true,
+              "expected.destination": true,
+              "expected.departure_date": true,
+              "expected.adults": true,
+              "expected.nights": true,
+              "expected.budget_rub": true
+            },
+            "exact_case": true
+          },
+          "tokens_in": 238,
+          "tokens_out": 110,
+          "output": {
+            "origin": "Казань",
+            "destination": "Сочи",
+            "departure_date": "2026-11-15",
+            "nights": 4,
+            "adults": 2,
+            "budget_rub": 65000,
+            "budget_hard": null,
+            "clear_fields": [],
+            "allow_nights": false,
+            "allow_date_shift": false,
+            "allow_budget_increase": false,
+            "intent": "plan",
+            "unsupported_requirements": []
+          }
+        },
+        {
+          "id": "currency_unsupported",
+          "group": "missing",
+          "repeat": 0,
+          "ok": true,
+          "latency_s": 4.74,
+          "score": {
+            "passed": 2,
+            "total": 2,
+            "details": {
+              "expected.adults": true,
+              "null.budget_rub": true
+            },
+            "exact_case": true
+          },
+          "tokens_in": 219,
+          "tokens_out": 100,
+          "output": {
+            "origin": null,
+            "destination": null,
+            "departure_date": null,
+            "nights": null,
+            "adults": 2,
+            "budget_rub": null,
+            "budget_hard": null,
+            "clear_fields": [],
+            "allow_nights": false,
+            "allow_date_shift": false,
+            "allow_budget_increase": false,
+            "intent": "plan",
+            "unsupported_requirements": [
+              "бюджет 1000 долларов"
+            ]
+          }
+        },
+        {
+          "id": "children",
+          "group": "unsupported",
+          "repeat": 0,
+          "ok": true,
+          "latency_s": 4.25,
+          "score": {
+            "passed": 3,
+            "total": 3,
+            "details": {
+              "expected.origin": true,
+              "unsupported.ребен": true,
+              "unsupported.кроват": true
+            },
+            "exact_case": true
+          },
+          "tokens_in": 225,
+          "tokens_out": 102,
+          "output": {
+            "origin": "Москва",
+            "destination": null,
+            "departure_date": null,
+            "nights": null,
+            "adults": null,
+            "budget_rub": null,
+            "budget_hard": null,
+            "clear_fields": [],
+            "allow_nights": false,
+            "allow_date_shift": false,
+            "allow_budget_increase": false,
+            "intent": "plan",
+            "unsupported_requirements": [
+              "детская кроватка",
+              "ребенок 4 лет"
+            ]
+          }
+        },
+        {
+          "id": "pet",
+          "group": "unsupported",
+          "repeat": 0,
+          "ok": true,
+          "latency_s": 4.027,
+          "score": {
+            "passed": 0,
+            "total": 1,
+            "details": {
+              "unsupported.собак": false
+            },
+            "exact_case": false
+          },
+          "tokens_in": 220,
+          "tokens_out": 97,
+          "output": {
+            "origin": null,
+            "destination": null,
+            "departure_date": null,
+            "nights": null,
+            "adults": null,
+            "budget_rub": null,
+            "budget_hard": null,
+            "clear_fields": [],
+            "allow_nights": false,
+            "allow_date_shift": false,
+            "allow_budget_increase": false,
+            "intent": "other",
+            "unsupported_requirements": [
+              "отель должен разрешать животных"
+            ]
+          }
+        },
+        {
+          "id": "other",
+          "group": "intent",
+          "repeat": 0,
+          "ok": true,
+          "latency_s": 4.08,
+          "score": {
+            "passed": 5,
+            "total": 5,
+            "details": {
+              "expected.intent": true,
+              "null.origin": true,
+              "null.destination": true,
+              "null.departure_date": true,
+              "null.nights": true
+            },
+            "exact_case": true
+          },
+          "tokens_in": 220,
+          "tokens_out": 102,
+          "output": {
+            "origin": null,
+            "destination": null,
+            "departure_date": null,
+            "nights": null,
+            "adults": null,
+            "budget_rub": null,
+            "budget_hard": null,
+            "clear_fields": [],
+            "allow_nights": false,
+            "allow_date_shift": false,
+            "allow_budget_increase": false,
+            "intent": "other",
+            "unsupported_requirements": [
+              "объяснить, что такое градиентный бустинг"
+            ]
+          }
+        },
+        {
+          "id": "request_change_origin",
+          "group": "patch",
+          "repeat": 0,
+          "ok": true,
+          "latency_s": 2.76,
+          "score": {
+            "passed": 3,
+            "total": 4,
+            "details": {
+              "expected.origin": true,
+              "expected.intent": false,
+              "null.destination": true,
+              "null.nights": true
+            },
+            "exact_case": false
+          },
+          "tokens_in": 241,
+          "tokens_out": 94,
+          "output": {
+            "origin": "Санкт-Петербург",
+            "destination": null,
+            "departure_date": null,
+            "nights": null,
+            "adults": null,
+            "budget_rub": null,
+            "budget_hard": null,
+            "clear_fields": [],
+            "allow_nights": false,
+            "allow_date_shift": false,
+            "allow_budget_increase": false,
+            "intent": "plan",
+            "unsupported_requirements": []
+          }
+        },
+        {
+          "id": "ambiguous_dates",
+          "group": "missing",
+          "repeat": 0,
+          "ok": true,
+          "latency_s": 5.133,
+          "score": {
+            "passed": 2,
+            "total": 2,
+            "details": {
+              "null.departure_date": true,
+              "null.origin": true
+            },
+            "exact_case": true
+          },
+          "tokens_in": 220,
+          "tokens_out": 94,
+          "output": {
+            "origin": null,
+            "destination": null,
+            "departure_date": null,
+            "nights": 7,
+            "adults": null,
+            "budget_rub": null,
+            "budget_hard": null,
+            "clear_fields": [],
+            "allow_nights": false,
+            "allow_date_shift": false,
+            "allow_budget_increase": false,
+            "intent": "plan",
+            "unsupported_requirements": [
+              "осень"
+            ]
+          }
+        },
+        {
+          "id": "duplicate_negative",
+          "group": "patch",
+          "repeat": 0,
+          "ok": true,
+          "latency_s": 6.402,
+          "score": {
+            "passed": 4,
+            "total": 6,
+            "details": {
+              "expected.adults": true,
+              "null.budget_rub": false,
+              "unsupported.собак": false,
+              "no_set_and_clear.budget": true
+            },
+            "exact_case": false
+          },
+          "tokens_in": 245,
+          "tokens_out": 115,
+          "output": {
+            "origin": null,
+            "destination": null,
+            "departure_date": null,
+            "nights": null,
+            "adults": 2,
+            "budget_rub": 80000,
+            "budget_hard": null,
+            "clear_fields": [
+              "budget",
+              "budget",
+              "budget"
+            ],
+            "allow_nights": false,
+            "allow_date_shift": false,
+            "allow_budget_increase": false,
+            "intent": "plan",
+            "unsupported_requirements": [
+              "no_dog"
+            ]
+          }
+        }
+      ]
+    },
+    "gpt://b1g84adtmei0bj2cb7ss/deepseek-v4.1-flash": {
+      "summary": {
+        "cases": 20,
+        "valid_schema_rate": 0.95,
+        "field_accuracy_conditional": 0.987,
+        "field_accuracy_all_cases": 0.974,
+        "exact_case_rate": 0.9,
+        "latency_median_s": 6.978,
+        "latency_p95_s": 32.115,
+        "input_tokens": 16528,
+        "output_tokens": 5888
+      },
+      "cases": [
+        {
+          "id": "basic",
+          "group": "initial",
+          "repeat": 0,
+          "ok": true,
+          "latency_s": 3.88,
+          "score": {
+            "passed": 6,
+            "total": 6,
+            "details": {
+              "expected.origin": true,
+              "expected.departure_date": true,
+              "expected.nights": true,
+              "expected.adults": true,
+              "expected.budget_rub": true,
+              "expected.budget_hard": true
+            },
+            "exact_case": true
+          },
+          "tokens_in": 871,
+          "tokens_out": 153,
+          "output": {
+            "origin": "Москва",
+            "destination": null,
+            "departure_date": "2026-11-10",
+            "nights": 5,
+            "adults": 2,
+            "budget_rub": 90000,
+            "budget_hard": true,
+            "clear_fields": [],
+            "allow_nights": false,
+            "allow_date_shift": false,
+            "allow_budget_increase": false,
+            "intent": "plan",
+            "unsupported_requirements": []
+          }
+        },
+        {
+          "id": "destination",
+          "group": "initial",
+          "repeat": 0,
+          "ok": true,
+          "latency_s": 5.79,
+          "score": {
+            "passed": 4,
+            "total": 4,
+            "details": {
+              "expected.destination": true,
+              "expected.origin": true,
+              "expected.nights": true,
+              "expected.departure_date": true
+            },
+            "exact_case": true
+          },
+          "tokens_in": 862,
+          "tokens_out": 226,
+          "output": {
+            "origin": "Москва",
+            "destination": "Анталья",
+            "departure_date": "2026-12-12",
+            "nights": 7,
+            "adults": null,
+            "budget_rub": null,
+            "budget_hard": null,
+            "clear_fields": [],
+            "allow_nights": false,
+            "allow_date_shift": false,
+            "allow_budget_increase": false,
+            "intent": "plan",
+            "unsupported_requirements": []
+          }
+        },
+        {
+          "id": "missing_origin",
+          "group": "missing",
+          "repeat": 0,
+          "ok": true,
+          "latency_s": 22.184,
+          "score": {
+            "passed": 4,
+            "total": 4,
+            "details": {
+              "expected.nights": true,
+              "expected.adults": true,
+              "null.origin": true,
+              "null.departure_date": true
+            },
+            "exact_case": true
+          },
+          "tokens_in": 859,
+          "tokens_out": 922,
+          "output": {
+            "origin": null,
+            "destination": null,
+            "departure_date": null,
+            "nights": 6,
+            "adults": 2,
+            "budget_rub": null,
+            "budget_hard": null,
+            "clear_fields": [],
+            "allow_nights": false,
+            "allow_date_shift": false,
+            "allow_budget_increase": false,
+            "intent": "plan",
+            "unsupported_requirements": [
+              "направление: к морю (без конкретного города)",
+              "месяц поездки: ноябрь (точная дата не указана)"
+            ]
+          }
+        },
+        {
+          "id": "missing_date",
+          "group": "missing",
+          "repeat": 0,
+          "ok": true,
+          "latency_s": 6.768,
+          "score": {
+            "passed": 4,
+            "total": 4,
+            "details": {
+              "expected.origin": true,
+              "expected.destination": true,
+              "expected.nights": true,
+              "null.departure_date": true
+            },
+            "exact_case": true
+          },
+          "tokens_in": 853,
+          "tokens_out": 237,
+          "output": {
+            "origin": "Москва",
+            "destination": "Стамбул",
+            "departure_date": null,
+            "nights": 5,
+            "adults": null,
+            "budget_rub": null,
+            "budget_hard": null,
+            "clear_fields": [],
+            "allow_nights": false,
+            "allow_date_shift": false,
+            "allow_budget_increase": false,
+            "intent": "plan",
+            "unsupported_requirements": []
+          }
+        },
+        {
+          "id": "negation",
+          "group": "unsupported",
+          "repeat": 0,
+          "ok": true,
+          "latency_s": 8.533,
+          "score": {
+            "passed": 5,
+            "total": 5,
+            "details": {
+              "null.origin": true,
+              "null.departure_date": true,
+              "null.nights": true,
+              "unsupported.пересад": true,
+              "unsupported.собак": true
+            },
+            "exact_case": true
+          },
+          "tokens_in": 859,
+          "tokens_out": 321,
+          "output": {
+            "origin": null,
+            "destination": null,
+            "departure_date": null,
+            "nights": null,
+            "adults": null,
+            "budget_rub": null,
+            "budget_hard": null,
+            "clear_fields": [],
+            "allow_nights": false,
+            "allow_date_shift": false,
+            "allow_budget_increase": false,
+            "intent": "plan",
+            "unsupported_requirements": [
+              "только прямые перелёты, без пересадок",
+              "отель должен принимать собак (pet-friendly)"
+            ]
+          }
+        },
+        {
+          "id": "replan_nights",
+          "group": "patch",
+          "repeat": 0,
+          "ok": true,
+          "latency_s": 2.88,
+          "score": {
+            "passed": 6,
+            "total": 6,
+            "details": {
+              "expected.nights": true,
+              "expected.intent": true,
+              "null.origin": true,
+              "null.destination": true,
+              "null.departure_date": true,
+              "null.budget_rub": true
+            },
+            "exact_case": true
+          },
+          "tokens_in": 904,
+          "tokens_out": 117,
+          "output": {
+            "origin": null,
+            "destination": null,
+            "departure_date": null,
+            "nights": 3,
+            "adults": null,
+            "budget_rub": null,
+            "budget_hard": null,
+            "clear_fields": [],
+            "allow_nights": false,
+            "allow_date_shift": false,
+            "allow_budget_increase": false,
+            "intent": "revise",
+            "unsupported_requirements": []
+          }
+        },
+        {
+          "id": "replan_budget",
+          "group": "patch",
+          "repeat": 0,
+          "ok": true,
+          "latency_s": 3.921,
+          "score": {
+            "passed": 5,
+            "total": 5,
+            "details": {
+              "expected.budget_rub": true,
+              "expected.intent": true,
+              "null.origin": true,
+              "null.departure_date": true,
+              "null.nights": true
+            },
+            "exact_case": true
+          },
+          "tokens_in": 901,
+          "tokens_out": 116,
+          "output": {
+            "origin": null,
+            "destination": null,
+            "departure_date": null,
+            "nights": null,
+            "adults": null,
+            "budget_rub": 70000,
+            "budget_hard": null,
+            "clear_fields": [],
+            "allow_nights": false,
+            "allow_date_shift": false,
+            "allow_budget_increase": false,
+            "intent": "revise",
+            "unsupported_requirements": []
+          }
+        },
+        {
+          "id": "remove_destination",
+          "group": "patch",
+          "repeat": 0,
+          "ok": true,
+          "latency_s": 7.532,
+          "score": {
+            "passed": 6,
+            "total": 6,
+            "details": {
+              "expected.intent": true,
+              "null.destination": true,
+              "null.origin": true,
+              "null.nights": true,
+              "clear.destination": true,
+              "no_set_and_clear.destination": true
+            },
+            "exact_case": true
+          },
+          "tokens_in": 877,
+          "tokens_out": 279,
+          "output": {
+            "origin": null,
+            "destination": null,
+            "departure_date": null,
+            "nights": null,
+            "adults": null,
+            "budget_rub": null,
+            "budget_hard": null,
+            "clear_fields": [
+              "destination"
+            ],
+            "allow_nights": false,
+            "allow_date_shift": false,
+            "allow_budget_increase": false,
+            "intent": "revise",
+            "unsupported_requirements": []
+          }
+        },
+        {
+          "id": "replan_date",
+          "group": "patch",
+          "repeat": 0,
+          "ok": true,
+          "latency_s": 5.603,
+          "score": {
+            "passed": 4,
+            "total": 4,
+            "details": {
+              "expected.departure_date": true,
+              "expected.intent": true,
+              "null.origin": true,
+              "null.nights": true
+            },
+            "exact_case": true
+          },
+          "tokens_in": 887,
+          "tokens_out": 198,
+          "output": {
+            "origin": null,
+            "destination": null,
+            "departure_date": "2026-11-14",
+            "nights": null,
+            "adults": null,
+            "budget_rub": null,
+            "budget_hard": null,
+            "clear_fields": [],
+            "allow_nights": false,
+            "allow_date_shift": false,
+            "allow_budget_increase": false,
+            "intent": "revise",
+            "unsupported_requirements": []
+          }
+        },
+        {
+          "id": "approve_relax_nights",
+          "group": "flex",
+          "repeat": 0,
+          "ok": true,
+          "latency_s": 6.995,
+          "score": {
+            "passed": 2,
+            "total": 2,
+            "details": {
+              "expected.allow_nights": true,
+              "null.nights": true
+            },
+            "exact_case": true
+          },
+          "tokens_in": 862,
+          "tokens_out": 246,
+          "output": {
+            "origin": null,
+            "destination": null,
+            "departure_date": null,
+            "nights": null,
+            "adults": null,
+            "budget_rub": null,
+            "budget_hard": null,
+            "clear_fields": [],
+            "allow_nights": true,
+            "allow_date_shift": false,
+            "allow_budget_increase": false,
+            "intent": "revise",
+            "unsupported_requirements": []
+          }
+        },
+        {
+          "id": "approve_relax_budget",
+          "group": "flex",
+          "repeat": 0,
+          "ok": false,
+          "latency_s": 32.115,
+          "error": "ValidationError: 1 validation error for ParsedTurn\n  Invalid JSON: EOF while parsing a value at line 1 column 0 [type=json_invalid, input_value='', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.13/v/json_invalid"
+        },
+        {
+          "id": "approve_shift",
+          "group": "flex",
+          "repeat": 0,
+          "ok": true,
+          "latency_s": 5.155,
+          "score": {
+            "passed": 3,
+            "total": 3,
+            "details": {
+              "expected.allow_date_shift": true,
+              "null.departure_date": true,
+              "null.nights": true
+            },
+            "exact_case": true
+          },
+          "tokens_in": 876,
+          "tokens_out": 203,
+          "output": {
+            "origin": null,
+            "destination": null,
+            "departure_date": null,
+            "nights": null,
+            "adults": null,
+            "budget_rub": null,
+            "budget_hard": null,
+            "clear_fields": [],
+            "allow_nights": false,
+            "allow_date_shift": true,
+            "allow_budget_increase": false,
+            "intent": "revise",
+            "unsupported_requirements": []
+          }
+        },
+        {
+          "id": "rub_unit",
+          "group": "initial",
+          "repeat": 0,
+          "ok": true,
+          "latency_s": 8.992,
+          "score": {
+            "passed": 6,
+            "total": 6,
+            "details": {
+              "expected.origin": true,
+              "expected.destination": true,
+              "expected.departure_date": true,
+              "expected.adults": true,
+              "expected.nights": true,
+              "expected.budget_rub": true
+            },
+            "exact_case": true
+          },
+          "tokens_in": 869,
+          "tokens_out": 305,
+          "output": {
+            "origin": "Казань",
+            "destination": "Сочи",
+            "departure_date": "2026-11-15",
+            "nights": 4,
+            "adults": 2,
+            "budget_rub": 65000,
+            "budget_hard": true,
+            "clear_fields": [],
+            "allow_nights": false,
+            "allow_date_shift": false,
+            "allow_budget_increase": false,
+            "intent": "plan",
+            "unsupported_requirements": []
+          }
+        },
+        {
+          "id": "currency_unsupported",
+          "group": "missing",
+          "repeat": 0,
+          "ok": true,
+          "latency_s": 6.96,
+          "score": {
+            "passed": 2,
+            "total": 2,
+            "details": {
+              "expected.adults": true,
+              "null.budget_rub": true
+            },
+            "exact_case": true
+          },
+          "tokens_in": 854,
+          "tokens_out": 260,
+          "output": {
+            "origin": null,
+            "destination": null,
+            "departure_date": null,
+            "nights": null,
+            "adults": 2,
+            "budget_rub": null,
+            "budget_hard": null,
+            "clear_fields": [],
+            "allow_nights": false,
+            "allow_date_shift": false,
+            "allow_budget_increase": false,
+            "intent": "plan",
+            "unsupported_requirements": [
+              "бюджет указан в долларах США (1000 USD на двоих) — конвертация в рубли не выполняется, поле budget_rub не заполнено"
+            ]
+          }
+        },
+        {
+          "id": "children",
+          "group": "unsupported",
+          "repeat": 0,
+          "ok": true,
+          "latency_s": 12.723,
+          "score": {
+            "passed": 3,
+            "total": 3,
+            "details": {
+              "expected.origin": true,
+              "unsupported.ребен": true,
+              "unsupported.кроват": true
+            },
+            "exact_case": true
+          },
+          "tokens_in": 860,
+          "tokens_out": 553,
+          "output": {
+            "origin": "Москва",
+            "destination": null,
+            "departure_date": null,
+            "nights": null,
+            "adults": null,
+            "budget_rub": null,
+            "budget_hard": null,
+            "clear_fields": [],
+            "allow_nights": false,
+            "allow_date_shift": false,
+            "allow_budget_increase": false,
+            "intent": "plan",
+            "unsupported_requirements": [
+              "ребенок 4 лет",
+              "детская кроватка"
+            ]
+          }
+        },
+        {
+          "id": "pet",
+          "group": "unsupported",
+          "repeat": 0,
+          "ok": true,
+          "latency_s": 12.784,
+          "score": {
+            "passed": 1,
+            "total": 1,
+            "details": {
+              "unsupported.собак": true
+            },
+            "exact_case": true
+          },
+          "tokens_in": 855,
+          "tokens_out": 435,
+          "output": {
+            "origin": null,
+            "destination": null,
+            "departure_date": null,
+            "nights": null,
+            "adults": null,
+            "budget_rub": null,
+            "budget_hard": null,
+            "clear_fields": [],
+            "allow_nights": false,
+            "allow_date_shift": false,
+            "allow_budget_increase": false,
+            "intent": "revise",
+            "unsupported_requirements": [
+              "Размещение с маленькой собакой: отель должен разрешать проживание с животными (pet-friendly)"
+            ]
+          }
+        },
+        {
+          "id": "other",
+          "group": "intent",
+          "repeat": 0,
+          "ok": true,
+          "latency_s": 5.867,
+          "score": {
+            "passed": 5,
+            "total": 5,
+            "details": {
+              "expected.intent": true,
+              "null.origin": true,
+              "null.destination": true,
+              "null.departure_date": true,
+              "null.nights": true
+            },
+            "exact_case": true
+          },
+          "tokens_in": 855,
+          "tokens_out": 185,
+          "output": {
+            "origin": null,
+            "destination": null,
+            "departure_date": null,
+            "nights": null,
+            "adults": null,
+            "budget_rub": null,
+            "budget_hard": null,
+            "clear_fields": [],
+            "allow_nights": false,
+            "allow_date_shift": false,
+            "allow_budget_increase": false,
+            "intent": "other",
+            "unsupported_requirements": []
+          }
+        },
+        {
+          "id": "request_change_origin",
+          "group": "patch",
+          "repeat": 0,
+          "ok": true,
+          "latency_s": 3.937,
+          "score": {
+            "passed": 4,
+            "total": 4,
+            "details": {
+              "expected.origin": true,
+              "expected.intent": true,
+              "null.destination": true,
+              "null.nights": true
+            },
+            "exact_case": true
+          },
+          "tokens_in": 884,
+          "tokens_out": 129,
+          "output": {
+            "origin": "Санкт-Петербург",
+            "destination": null,
+            "departure_date": null,
+            "nights": null,
+            "adults": null,
+            "budget_rub": null,
+            "budget_hard": null,
+            "clear_fields": [],
+            "allow_nights": false,
+            "allow_date_shift": false,
+            "allow_budget_increase": false,
+            "intent": "revise",
+            "unsupported_requirements": []
+          }
+        },
+        {
+          "id": "ambiguous_dates",
+          "group": "missing",
+          "repeat": 0,
+          "ok": true,
+          "latency_s": 12.192,
+          "score": {
+            "passed": 2,
+            "total": 2,
+            "details": {
+              "null.departure_date": true,
+              "null.origin": true
+            },
+            "exact_case": true
+          },
+          "tokens_in": 860,
+          "tokens_out": 454,
+          "output": {
+            "origin": null,
+            "destination": null,
+            "departure_date": null,
+            "nights": 7,
+            "adults": null,
+            "budget_rub": null,
+            "budget_hard": null,
+            "clear_fields": [],
+            "allow_nights": false,
+            "allow_date_shift": false,
+            "allow_budget_increase": false,
+            "intent": "plan",
+            "unsupported_requirements": [
+              "сезон поездки: осень (точная дата не указана)"
+            ]
+          }
+        },
+        {
+          "id": "duplicate_negative",
+          "group": "patch",
+          "repeat": 0,
+          "ok": true,
+          "latency_s": 16.247,
+          "score": {
+            "passed": 2,
+            "total": 3,
+            "details": {
+              "expected.adults": false,
+              "null.budget_rub": true,
+              "unsupported.собак": true
+            },
+            "exact_case": false
+          },
+          "tokens_in": 880,
+          "tokens_out": 549,
+          "output": {
+            "origin": null,
+            "destination": null,
+            "departure_date": null,
+            "nights": null,
+            "adults": null,
+            "budget_rub": null,
+            "budget_hard": null,
+            "clear_fields": [],
+            "allow_nights": false,
+            "allow_date_shift": false,
+            "allow_budget_increase": false,
+            "intent": "revise",
+            "unsupported_requirements": [
+              "без собаки"
+            ]
+          }
+        }
+      ]
+    }
+  }
+}
