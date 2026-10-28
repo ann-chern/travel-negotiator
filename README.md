@@ -122,16 +122,10 @@ uv sync --frozen --group dev
 uv run python -m pytest -q
 ```
 
-Проверка MCP-транспорта:
+Проверка MCP-каталога:
 
 ```powershell
 uv run python -m app.mcp_catalog.smoke
-```
-
-Проверка перед запуском:
-
-```powershell
-uv run python -m scripts.preflight
 ```
 
 Файлы `.env` и другие секреты нельзя добавлять в репозиторий.
