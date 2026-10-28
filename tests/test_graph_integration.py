@@ -1,9 +1,11 @@
 """Requires `uv add langgraph`; validates LangGraph routing and thread persistence."""
+
 import pytest
 
 pytest.importorskip("langgraph")
 
 from datetime import date
+
 from app.agent.graph_agent import GraphTravelAgent
 from app.agent.llm_provider import ParsedTurn
 
@@ -25,9 +27,11 @@ class StubParser:
 
 class StubWriter:
     def generate(self, *, task, payload):
-        return {"clarification": "Уточните данные поездки.",
-                "recommendation": "Проверенные демонстрационные предложения представлены ниже.",
-                "negotiation": "Требуется согласовать изменение условий."}[task]
+        return {
+            "clarification": "Уточните данные поездки.",
+            "recommendation": "Проверенные демонстрационные предложения представлены ниже.",
+            "negotiation": "Требуется согласовать изменение условий.",
+        }[task]
 
 
 def test_thread_state_and_replanning():

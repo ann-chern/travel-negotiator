@@ -1,11 +1,16 @@
 from datetime import date
+
 from app.mcp_catalog.service import CatalogService
-from app.schemas.request import TripRequest, Travelers
+from app.schemas.request import Travelers, TripRequest
 
 
 def request_json(**overrides):
-    values = TripRequest(origin="Москва", departure_date=date(2026, 11, 10),
-        nights=5, travelers=Travelers(adults=2)).model_dump(mode="json")
+    values = TripRequest(
+        origin="Москва",
+        departure_date=date(2026, 11, 10),
+        nights=5,
+        travelers=Travelers(adults=2),
+    ).model_dump(mode="json")
     values.update(overrides)
     return values
 
@@ -61,8 +66,11 @@ def test_invalid_input_and_limits():
 
 def test_hard_constraint_is_enforced_by_mcp():
     from app.schemas.request import Constraint
+
     req = request_json()
-    req["constraints"] = [Constraint(field="transport.stops", operator="eq", value=0).model_dump(mode="json")]
+    req["constraints"] = [
+        Constraint(field="transport.stops", operator="eq", value=0).model_dump(mode="json")
+    ]
     svc = CatalogService()
     offers = svc.search_offers(req, limit=50)
     assert offers.status == "ok" and offers.offers

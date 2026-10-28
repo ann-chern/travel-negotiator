@@ -1,24 +1,41 @@
 from datetime import date
 from decimal import Decimal
 
-from app.schemas.request import Budget, Constraint, Importance, Operator, Preference, Strength, Travelers, TripRequest
+from app.schemas.request import (
+    Budget,
+    Constraint,
+    Importance,
+    Preference,
+    Strength,
+    Travelers,
+    TripRequest,
+)
 from app.services.optimizer import search_and_negotiate
 
 
 def req(**kwargs):
-    return TripRequest(origin="Москва", departure_date=date(2026, 11, 10), nights=5,
-                       travelers=Travelers(adults=2), **kwargs)
+    return TripRequest(
+        origin="Москва",
+        departure_date=date(2026, 11, 10),
+        nights=5,
+        travelers=Travelers(adults=2),
+        **kwargs,
+    )
 
 
 def test_ranking_returns_only_valid_trips():
     result = search_and_negotiate(req(), limit=3)
     assert result.status == "ready" and len(result.ranked) == 3
     assert all(t.validation.status == "pass" for t in result.ranked)
-    assert [x.score for x in result.ranked] == sorted((x.score for x in result.ranked), reverse=True)
+    assert [x.score for x in result.ranked] == sorted(
+        (x.score for x in result.ranked), reverse=True
+    )
 
 
 def test_hard_budget_never_exceeded():
-    result = search_and_negotiate(req(budget=Budget(amount=Decimal("10000"), currency="RUB", scope="whole_trip")))
+    result = search_and_negotiate(
+        req(budget=Budget(amount=Decimal("10000"), currency="RUB", scope="whole_trip"))
+    )
     assert result.status == "no_match"
     assert not result.ranked and not result.compromises
 
@@ -44,7 +61,13 @@ def test_non_relaxable_constraint_not_overridden():
 
 
 def test_soft_preference_affects_ranking():
-    r = search_and_negotiate(req(preferences=[Preference(field="hotel.stars", desired_value=5, importance=Importance.HIGH)]))
+    r = search_and_negotiate(
+        req(
+            preferences=[
+                Preference(field="hotel.stars", desired_value=5, importance=Importance.HIGH)
+            ]
+        )
+    )
     assert r.status == "ready"
     assert r.ranked[0].trip.hotel.stars == 5
 
@@ -81,5 +104,8 @@ def test_soft_stop_preference_no_hard_filter():
 
 def test_unresolved_is_blocking_not_ignored():
     from app.schemas.request import UnresolvedRequirement
-    r = search_and_negotiate(req(unresolved=[UnresolvedRequirement(text="без лестниц", reason="unsupported_by_catalog")]))
+
+    r = search_and_negotiate(
+        req(unresolved=[UnresolvedRequirement(text="без лестниц", reason="unsupported_by_catalog")])
+    )
     assert r.status == "unsupported"

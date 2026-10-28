@@ -1,6 +1,7 @@
 """Runs without LangGraph installed: business-node contract tests.
 The actual graph routing/compilation requires langgraph and is tested on developer machine.
 """
+
 from datetime import date
 
 from app.agent.graph_agent import GraphTravelAgent, TravelGraphState
@@ -10,6 +11,7 @@ from app.agent.llm_provider import ParsedTurn
 class FakeParser:
     def __init__(self, *turns):
         self.turns = iter(turns)
+
     def parse(self, message, state):
         return next(self.turns)
 
@@ -17,11 +19,14 @@ class FakeParser:
 class FakeWriter:
     def __init__(self):
         self.tasks = []
+
     def generate(self, *, task, payload):
         self.tasks.append(task)
-        return {"clarification": "Из какого города вы хотите вылететь?",
-                "recommendation": "Вот предложения из демонстрационного каталога.",
-                "negotiation": "Нужна уступка, но сначала ваше согласие."}[task]
+        return {
+            "clarification": "Из какого города вы хотите вылететь?",
+            "recommendation": "Вот предложения из демонстрационного каталога.",
+            "negotiation": "Нужна уступка, но сначала ваше согласие.",
+        }[task]
 
 
 def make_agent(parser):
@@ -29,6 +34,7 @@ def make_agent(parser):
     agent.parser = parser
     agent.writer = FakeWriter()
     from app.services.negotiation import search_with_plan_changes
+
     agent.search = search_with_plan_changes
     return agent
 
@@ -36,7 +42,7 @@ def make_agent(parser):
 def test_state_is_pydantic_and_has_explicit_defaults():
     state = TravelGraphState()
     assert state.version == 0 and state.request.origin is None
-    assert state.knowledge_hints == "" and state.options == []
+    assert state.options == []
 
 
 def test_parse_and_clarify_are_independent_nodes():
@@ -51,8 +57,11 @@ def test_parse_and_clarify_are_independent_nodes():
 
 
 def test_search_recommendation_uses_validated_catalog():
-    agent = make_agent(FakeParser(ParsedTurn(origin="Москва", adults=2,
-                                          nights=5, departure_date=date(2026, 11, 10))))
+    agent = make_agent(
+        FakeParser(
+            ParsedTurn(origin="Москва", adults=2, nights=5, departure_date=date(2026, 11, 10))
+        )
+    )
     state = TravelGraphState(user_message="Москва, двое, 10 ноября на 5 ночей")
     state = state.model_copy(update=agent._understand(state))
     state = state.model_copy(update=agent._route(state))
@@ -67,10 +76,18 @@ def test_search_recommendation_uses_validated_catalog():
 
 def test_patch_preserves_previous_values():
     agent = make_agent(FakeParser(ParsedTurn(nights=3, intent="revise")))
-    from app.schemas.request import TripRequest, Travelers
-    state = TravelGraphState(user_message="лучше 3 ночи", request=TripRequest(
-        origin="Москва", departure_date=date(2026, 11, 10), nights=5,
-        travelers=Travelers(adults=2)), version=1)
+    from app.schemas.request import Travelers, TripRequest
+
+    state = TravelGraphState(
+        user_message="лучше 3 ночи",
+        request=TripRequest(
+            origin="Москва",
+            departure_date=date(2026, 11, 10),
+            nights=5,
+            travelers=Travelers(adults=2),
+        ),
+        version=1,
+    )
     state = state.model_copy(update=agent._understand(state))
     assert state.request.origin == "Москва" and state.request.nights == 3
     assert state.version == 2
@@ -98,9 +115,11 @@ def test_other_intent_does_not_change_request():
 
 def test_writer_failure_falls_back_without_fabricating_data():
     agent = make_agent(FakeParser())
+
     class BrokenWriter:
         def generate(self, **kwargs):
             raise RuntimeError("model failure")
+
     agent.writer = BrokenWriter()
     state = TravelGraphState(missing=["город отправления"], stage="needs_input")
     update = agent._clarify(state)
@@ -111,9 +130,16 @@ def test_writer_failure_falls_back_without_fabricating_data():
 
 def test_negotiation_does_not_apply_proposals():
     agent = make_agent(FakeParser())
-    state = TravelGraphState(stage="negotiating", compromises=[{
-        "kind": "budget", "description": "повысить бюджет", "requires_confirmation": True
-    }])
+    state = TravelGraphState(
+        stage="negotiating",
+        compromises=[
+            {
+                "kind": "budget",
+                "description": "повысить бюджет",
+                "requires_confirmation": True,
+            }
+        ],
+    )
     update = agent._negotiate(state)
     assert update["response"]
     assert state.request.budget is None

@@ -1,4 +1,5 @@
 """Decode MCP call_tool results while respecting both structured and text payloads."""
+
 from __future__ import annotations
 
 import json
@@ -34,4 +35,6 @@ def decode_tool_result(result: Any) -> dict:
                 return obj
             if isinstance(obj.get("result"), dict) and "status" in obj["result"]:
                 return obj["result"]
-    raise ValueError(f"MCP call had no decodable JSON result; content={getattr(result, 'content', None)!r}")
+    raise ValueError(
+        f"MCP call had no decodable JSON result; content={getattr(result, 'content', None)!r}"
+    )

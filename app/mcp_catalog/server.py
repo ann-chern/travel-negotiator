@@ -1,5 +1,7 @@
 """MCP v2 stdio server. stdout is protocol-only; log to stderr."""
+
 from mcp.server.mcpserver import MCPServer
+
 from app.mcp_catalog.service import CatalogService
 
 server = MCPServer("Travel Negotiator Demo Catalog")
@@ -19,13 +21,20 @@ def search_date_window(request_json: dict, limit: int = 3) -> dict:
 
 
 @server.tool()
-def negotiate_offers(request_json: dict, allow_nights: bool = False,
-                     allow_date_shift: bool = False, allow_budget_increase: bool = False,
-                     limit: int = 3) -> dict:
+def negotiate_offers(
+    request_json: dict,
+    allow_nights: bool = False,
+    allow_date_shift: bool = False,
+    allow_budget_increase: bool = False,
+    limit: int = 3,
+) -> dict:
     """Offer verified, unapproved changes to budget/nights/dates; never mutates request."""
     return _service.negotiate_offers(
-        request_json, allow_nights=allow_nights, allow_date_shift=allow_date_shift,
-        allow_budget_increase=allow_budget_increase, limit=limit,
+        request_json,
+        allow_nights=allow_nights,
+        allow_date_shift=allow_date_shift,
+        allow_budget_increase=allow_budget_increase,
+        limit=limit,
     ).model_dump(mode="json")
 
 
@@ -59,6 +68,10 @@ if __name__ == "__main__":
 def search_historical_snapshots(destination_id: str | None = None, limit: int = 20) -> dict:
     """Read sourced historical price observations, NOT live inventory or bookable trips."""
     from app.data.snapshot_catalog import SnapshotCatalogProvider
+
     rows = SnapshotCatalogProvider().search(destination_id=destination_id)
-    return {"mode": "historical_non_bookable", "total": len(rows),
-            "offers": [r.model_dump(mode="json") for r in rows[:max(1, min(limit, 100))]]}
+    return {
+        "mode": "historical_non_bookable",
+        "total": len(rows),
+        "offers": [r.model_dump(mode="json") for r in rows[: max(1, min(limit, 100))]],
+    }

@@ -1,5 +1,7 @@
 from types import SimpleNamespace
+
 import pytest
+
 from app.mcp_catalog.result_decode import decode_tool_result
 
 
@@ -8,7 +10,10 @@ def item(*, structured=None, content=None, is_error=False):
 
 
 def test_structured_content():
-    assert decode_tool_result(item(structured={"status": "ok", "offers": []})) == {"status": "ok", "offers": []}
+    assert decode_tool_result(item(structured={"status": "ok", "offers": []})) == {
+        "status": "ok",
+        "offers": [],
+    }
 
 
 def test_structured_wrapped_result():

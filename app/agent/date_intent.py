@@ -4,18 +4,28 @@ A month with no year refers to its next occurrence, not necessarily this year.
 A range of possible departures is preserved as a range (never converted into a
 single date by the language model). No supplier or catalog assumptions live here.
 """
+
 from __future__ import annotations
 
 import calendar
-from datetime import date
 import re
+from datetime import date
 
 from app.schemas.request import DateWindow
 
 MONTH_STEMS = {
-    "январ": 1, "феврал": 2, "март": 3, "апрел": 4,
-    "ма": 5, "июн": 6, "июл": 7, "август": 8,
-    "сентябр": 9, "октябр": 10, "ноябр": 11, "декабр": 12,
+    "январ": 1,
+    "феврал": 2,
+    "март": 3,
+    "апрел": 4,
+    "ма": 5,
+    "июн": 6,
+    "июл": 7,
+    "август": 8,
+    "сентябр": 9,
+    "октябр": 10,
+    "ноябр": 11,
+    "декабр": 12,
 }
 MONTH_PATTERN = re.compile(
     r"\b(январ[ьяе]|феврал[ьяе]|март[ае]?|апрел[ьяе]|ма[йяе]|июн[ьяе]|июл[ьяе]|август[ае]?|сентябр[ьяе]|октябр[ьяе]|ноябр[ьяе]|декабр[ьяе])\b"
@@ -48,12 +58,15 @@ def recognize_window(text: str, today: date | None = None) -> DateWindow | None:
     if month_text.startswith(("май", "мая", "мае")):
         month = 5
     else:
-        month = next((value for stem, value in MONTH_STEMS.items() if month_text.startswith(stem)), None)
+        month = next(
+            (value for stem, value in MONTH_STEMS.items() if month_text.startswith(stem)),
+            None,
+        )
     if month is None:
         return None
     # Interpret the year attached to the selected date phrase, not a year
     # elsewhere in the utterance describing the old date.
-    suffix = normalized[match_month.end():]
+    suffix = normalized[match_month.end() :]
     year_match = re.search(r"^\s*(20\d{2})\b", suffix)
     if year_match is None and len(months) == 1:
         year_match = re.search(r"\b(20\d{2})\b", normalized)
@@ -64,12 +77,24 @@ def recognize_window(text: str, today: date | None = None) -> DateWindow | None:
     last = calendar.monthrange(year, month)[1]
     # Only use a numeric range associated with the selected month.
     # Ranges elsewhere may describe the date being replaced.
-    clause = normalized[max(0, match_month.start() - 32): match_month.end()]
-    match_range = re.search(r"\b(?:с\s+)?(\d{1,2})\s*(?:по|[-–—])\s*(\d{1,2})\s+" + re.escape(month_text) + r"$", clause)
+    clause = normalized[max(0, match_month.start() - 32) : match_month.end()]
+    match_range = re.search(
+        r"\b(?:с\s+)?(\d{1,2})\s*(?:по|[-–—])\s*(\d{1,2})\s+" + re.escape(month_text) + r"$",
+        clause,
+    )
     if match_range:
         start, end = map(int, match_range.groups())
-    elif (len(months) > 1 and replacement is not None) or (re.search(r"\b(?:люб(?:ой|ая|ые|ую)|весь|целый)\b", normalized)
-          or re.search(r"\b(?:в|на протяжении|в течение)\s+" + re.escape(month_text) + r"\b", normalized)) and "половин" not in normalized:
+    elif (
+        (len(months) > 1 and replacement is not None)
+        or (
+            re.search(r"\b(?:люб(?:ой|ая|ые|ую)|весь|целый)\b", normalized)
+            or re.search(
+                r"\b(?:в|на протяжении|в течение)\s+" + re.escape(month_text) + r"\b",
+                normalized,
+            )
+        )
+        and "половин" not in normalized
+    ):
         start, end = 1, last
     elif "второй половин" in normalized or "во второй половин" in normalized:
         start, end = 16, last
@@ -84,4 +109,7 @@ def recognize_window(text: str, today: date | None = None) -> DateWindow | None:
             year += 1
         elif month == now.month:
             start = max(start, now.day)
-    return DateWindow(earliest_departure=date(year, month, start), latest_departure=date(year, month, end))
+    return DateWindow(
+        earliest_departure=date(year, month, start),
+        latest_departure=date(year, month, end),
+    )

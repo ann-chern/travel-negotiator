@@ -1,14 +1,19 @@
 from datetime import date
 from decimal import Decimal
 
-from app.data.catalog import destinations, hotels, generate_candidates
-from app.schemas.request import TripRequest, Travelers, Budget, Pet
+from app.data.catalog import destinations, generate_candidates, hotels
+from app.schemas.request import Budget, Pet, Travelers, TripRequest
 from app.services.validator import validate_trip
 
 
 def req(**kwargs):
-    return TripRequest(origin="Москва", departure_date=date(2026, 11, 10), nights=5,
-        travelers=Travelers(adults=2), **kwargs)
+    return TripRequest(
+        origin="Москва",
+        departure_date=date(2026, 11, 10),
+        nights=5,
+        travelers=Travelers(adults=2),
+        **kwargs,
+    )
 
 
 def test_reference_catalog_three_cities_nine_hotels():
@@ -57,9 +62,9 @@ def test_pet_policy_is_not_faked():
 
 
 def test_outside_supported_coverage_is_empty():
-    assert not generate_candidates(req().model_copy(update={"origin":"Берлин"}))
-    assert not generate_candidates(req().model_copy(update={"destination":"Токио"}))
-    assert not generate_candidates(req().model_copy(update={"departure_date":date(2030, 1, 1)}))
+    assert not generate_candidates(req().model_copy(update={"origin": "Берлин"}))
+    assert not generate_candidates(req().model_copy(update={"destination": "Токио"}))
+    assert not generate_candidates(req().model_copy(update={"departure_date": date(2030, 1, 1)}))
 
 
 def test_budget_changes_validation_not_raw_catalog():

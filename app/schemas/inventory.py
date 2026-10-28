@@ -1,7 +1,8 @@
 """Provider-independent travel inventory contracts (synthetic and future live offers)."""
+
 from __future__ import annotations
 
-from datetime import datetime, date, timezone
+from datetime import date, datetime
 from decimal import Decimal
 from enum import Enum
 from typing import Literal
@@ -64,6 +65,7 @@ class Location(InventoryModel):
     @classmethod
     def validate_iana_timezone(cls, value: str) -> str:
         from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
         try:
             ZoneInfo(value)
         except ZoneInfoNotFoundError as exc:

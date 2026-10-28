@@ -1,12 +1,18 @@
 """Trip assembly contracts. All prices are synthetic or sourced, never inferred by an LLM."""
+
 from __future__ import annotations
 
-from decimal import Decimal
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from app.schemas.inventory import Hotel, HotelOffer, Money, TransferOffer, TransportOffer
+from app.schemas.inventory import (
+    Hotel,
+    HotelOffer,
+    Money,
+    TransferOffer,
+    TransportOffer,
+)
 
 
 class TripModel(BaseModel):
@@ -38,7 +44,11 @@ class ValidationResult(TripModel):
 
     @model_validator(mode="after")
     def consistent_status(self) -> "ValidationResult":
-        expected = "fail" if any(x.status == "fail" for x in self.issues) else ("unknown" if self.issues else "pass")
+        expected = (
+            "fail"
+            if any(x.status == "fail" for x in self.issues)
+            else ("unknown" if self.issues else "pass")
+        )
         if self.status != expected:
             raise ValueError("Validation status must agree with issues")
         return self

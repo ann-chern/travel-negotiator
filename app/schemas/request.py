@@ -1,4 +1,5 @@
 """User intent contracts. No LLM or supplier-specific logic belongs here."""
+
 from __future__ import annotations
 
 from datetime import date
@@ -42,10 +43,17 @@ class Operator(str, Enum):
 
 # This is an allowlist: tools must not treat LLM-provided fields as executable paths.
 ConstraintField = Literal[
-    "hotel.stars", "hotel.pets_allowed", "hotel.meal_plan",
-    "hotel.free_cancellation", "hotel.distance_to_center_km",
-    "transport.mode", "transport.stops", "transport.duration_minutes",
-    "destination.country", "destination.tags", "trip.nights",
+    "hotel.stars",
+    "hotel.pets_allowed",
+    "hotel.meal_plan",
+    "hotel.free_cancellation",
+    "hotel.distance_to_center_km",
+    "transport.mode",
+    "transport.stops",
+    "transport.duration_minutes",
+    "destination.country",
+    "destination.tags",
+    "trip.nights",
 ]
 ConstraintValue = Union[str, int, float, bool, list[str], list[int], list[float]]
 
@@ -155,15 +163,28 @@ class TripRequest(StrictModel):
         if self.departure_date and self.return_date and self.return_date <= self.departure_date:
             raise ValueError("Return date must be after departure date")
         if self.departure_date and self.date_window:
-            if not self.date_window.earliest_departure <= self.departure_date <= self.date_window.latest_departure:
+            if (
+                not self.date_window.earliest_departure
+                <= self.departure_date
+                <= self.date_window.latest_departure
+            ):
                 raise ValueError("Departure date is outside its date window")
         return self
 
 
 # Explicit operations avoid confusing an absent field with a field to be cleared.
 PatchableField = Literal[
-    "origin", "destination", "departure_date", "return_date", "date_window",
-    "nights", "travelers", "budget", "constraints", "preferences", "unresolved",
+    "origin",
+    "destination",
+    "departure_date",
+    "return_date",
+    "date_window",
+    "nights",
+    "travelers",
+    "budget",
+    "constraints",
+    "preferences",
+    "unresolved",
 ]
 
 

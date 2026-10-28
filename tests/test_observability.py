@@ -1,5 +1,5 @@
-import json
 import io
+import json
 import logging
 
 from app.observability import event, turn_context

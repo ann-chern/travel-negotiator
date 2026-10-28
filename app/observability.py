@@ -4,16 +4,16 @@ Events are JSON so ``docker compose logs -f app`` can be filtered by event,
 request_id or session_id.  We log validated inputs/outputs and decisions, never
 credentials or hidden model reasoning.
 """
+
 from __future__ import annotations
 
-from contextlib import contextmanager
-from contextvars import ContextVar
 import json
 import logging
 import os
 import sys
+from contextlib import contextmanager
+from contextvars import ContextVar
 from typing import Any, Iterator
-
 
 _request_id: ContextVar[str] = ContextVar("tn_request_id", default="-")
 _session_id: ContextVar[str] = ContextVar("tn_session_id", default="-")
@@ -43,8 +43,9 @@ def _json_value(value: Any) -> Any:
             name = str(key)
             if name.lower() in {"api_key", "authorization", "token", "secret"}:
                 continue
-            result[name] = (user_message_value(str(item)) if name == "user_message"
-                            else _json_value(item))
+            result[name] = (
+                user_message_value(str(item)) if name == "user_message" else _json_value(item)
+            )
         return result
     if isinstance(value, (list, tuple, set, frozenset)):
         return [_json_value(item) for item in value]
@@ -55,7 +56,12 @@ def _json_value(value: Any) -> Any:
 
 def user_message_value(message: str) -> str:
     """Allow production deployments to keep the flow while hiding user text."""
-    enabled = os.getenv("TN_LOG_USER_MESSAGES", "1").strip().lower() in {"1", "true", "yes", "on"}
+    enabled = os.getenv("TN_LOG_USER_MESSAGES", "1").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
     return message if enabled else "<redacted>"
 
 

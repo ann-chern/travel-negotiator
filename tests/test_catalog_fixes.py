@@ -1,38 +1,49 @@
 from datetime import date
+
 from app.agent.intent_rules import explicit_destination, unsupported_destination_message
 from app.data.catalog import active_cities
-from app.schemas.request import TripRequest, Travelers
 from app.mcp_catalog.service import CatalogService
+from app.schemas.request import Travelers, TripRequest
 
 
 def test_extended_destinations_come_from_inventory(monkeypatch):
-    monkeypatch.setenv('TN_EXTENDED_DEMO', '1')
+    monkeypatch.setenv("TN_EXTENDED_DEMO", "1")
     assert len(active_cities()) == 15
-    assert explicit_destination('А как насчёт Пхукета?') == 'Пхукет'
-    assert unsupported_destination_message(TripRequest(destination='Пхукет')) is None
-    assert unsupported_destination_message(TripRequest(destination='phuket')) is None
-    assert 'Пхукет' in unsupported_destination_message(TripRequest(destination='Япония'))
+    assert explicit_destination("А как насчёт Пхукета?") == "Пхукет"
+    assert unsupported_destination_message(TripRequest(destination="Пхукет")) is None
+    assert unsupported_destination_message(TripRequest(destination="phuket")) is None
+    assert "Пхукет" in unsupported_destination_message(TripRequest(destination="Япония"))
 
 
 def test_default_inventory_stays_small(monkeypatch):
-    monkeypatch.delenv('TN_EXTENDED_DEMO', raising=False)
+    monkeypatch.delenv("TN_EXTENDED_DEMO", raising=False)
     assert len(active_cities()) == 3
-    assert unsupported_destination_message(TripRequest(destination='Пхукет')) is not None
+    assert unsupported_destination_message(TripRequest(destination="Пхукет")) is not None
 
 
 def test_cards_sorted_by_fit(monkeypatch):
-    monkeypatch.setenv('TN_EXTENDED_DEMO', '1')
-    req=TripRequest(origin='Москва', destination='Стамбул', departure_date=date(2027,9,10),
-                    nights=7, travelers=Travelers(adults=2))
-    result=CatalogService().search_offers(req.model_dump(mode='json'), limit=3)
-    assert result.status == 'ok'
-    assert [o.match_score for o in result.offers] == sorted([o.match_score for o in result.offers], reverse=True)
-    assert all(not any('Источник климатических норм:' in x for x in o.match_caveats) for o in result.offers)
+    monkeypatch.setenv("TN_EXTENDED_DEMO", "1")
+    req = TripRequest(
+        origin="Москва",
+        destination="Стамбул",
+        departure_date=date(2027, 9, 10),
+        nights=7,
+        travelers=Travelers(adults=2),
+    )
+    result = CatalogService().search_offers(req.model_dump(mode="json"), limit=3)
+    assert result.status == "ok"
+    assert [o.match_score for o in result.offers] == sorted(
+        [o.match_score for o in result.offers], reverse=True
+    )
+    assert all(
+        not any("Источник климатических норм:" in x for x in o.match_caveats) for o in result.offers
+    )
 
 
 def test_strict_destination_filter_supports_extended_catalog(monkeypatch):
     from app.agent.intent_rules import destination_matches
-    monkeypatch.setenv('TN_EXTENDED_DEMO', '1')
-    assert destination_matches('Пхукет', 'phuket')
-    assert not destination_matches('Пхукет', 'sochi')
-    assert not destination_matches('Япония', 'phuket')
+
+    monkeypatch.setenv("TN_EXTENDED_DEMO", "1")
+    assert destination_matches("Пхукет", "phuket")
+    assert not destination_matches("Пхукет", "sochi")
+    assert not destination_matches("Япония", "phuket")

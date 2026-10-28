@@ -1,6 +1,9 @@
 """Versioned public catalog contracts (all data is synthetic in this step)."""
+
 from __future__ import annotations
+
 from typing import Literal
+
 from pydantic import BaseModel, ConfigDict, Field
 
 
