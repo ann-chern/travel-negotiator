@@ -14,7 +14,8 @@ from urllib.parse import urlencode
 from urllib.request import urlopen
 
 AIR_ENDPOINT = 'https://archive-api.open-meteo.com/v1/archive'
-MARINE_ENDPOINT = 'https://marine-api.open-meteo.com/v1/marine'
+# Historical SST is retrieved from the reanalysis archive, not the marine forecast endpoint.
+MARINE_ENDPOINT = AIR_ENDPOINT
 DEFAULT_CACHE = Path(__file__).resolve().parents[1] / 'data' / 'openmeteo_normals.json'
 
 
@@ -36,7 +37,7 @@ def _monthly(dates: list[str], values: list, *, hourly: bool = False) -> dict[in
 
 
 def refresh_city(city_id: str, lat: float, lon: float, *, start_year: int = 2022,
-                 end_year: int = 2025, opener=urlopen) -> dict:
+                 end_year: int = 2025, opener=urlopen, sea_coords: tuple[float, float] | None = None) -> dict:
     """Download paired air and marine history; sea is optional but never invented.
 
     Marine coordinates are near the city, not necessarily over sea. Missing sea
@@ -50,7 +51,10 @@ def refresh_city(city_id: str, lat: float, lon: float, *, start_year: int = 2022
     seas: dict[int, float] = {}
     marine_error = None
     try:
-        sea = _get_json(MARINE_ENDPOINT, {**base, 'hourly': 'sea_surface_temperature'}, opener=opener)['hourly']
+        marine_base = {**base, 'hourly': 'sea_surface_temperature', 'models': 'era5', 'cell_selection': 'sea'}
+        if sea_coords is not None:
+            marine_base.update(latitude=sea_coords[0], longitude=sea_coords[1])
+        sea = _get_json(MARINE_ENDPOINT, marine_base, opener=opener)['hourly']
         seas = _monthly(sea['time'], sea['sea_surface_temperature'], hourly=True)
     except (OSError, ValueError, KeyError, TimeoutError) as exc:
         marine_error = type(exc).__name__
@@ -58,6 +62,7 @@ def refresh_city(city_id: str, lat: float, lon: float, *, start_year: int = 2022
                 years=[start_year, end_year], source='Open-Meteo / ERA5 + marine',
                 air_url=AIR_ENDPOINT, sea_url=MARINE_ENDPOINT,
                 sea_data_issue=marine_error,
+                sea_coordinates=list(sea_coords) if sea_coords is not None else None,
                 months={str(month): {'air_c': highs.get(month), 'sea_c': seas.get(month)}
                         for month in range(1, 13)})
 

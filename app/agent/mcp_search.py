@@ -5,6 +5,7 @@ No direct CatalogService or catalog imports are allowed in this adapter.
 from __future__ import annotations
 
 import asyncio
+import os
 import sys
 from typing import Any
 
@@ -38,21 +39,33 @@ class McpCatalogSearch:
 
     async def _call(self, request_json: dict) -> dict:
         from mcp import Client, StdioServerParameters
-        params = StdioServerParameters(command=self.command, args=["-m", self.module])
+        params = StdioServerParameters(
+            command=self.command,
+            args=["-m", self.module],
+            env=dict(os.environ),
+        )
         async with Client(params) as client:
             result = await client.call_tool("search_offers", {"request_json": request_json, "limit": self.limit})
             return decode_tool_result(result)
 
     async def _call_window(self, request_json: dict) -> dict:
         from mcp import Client, StdioServerParameters
-        params = StdioServerParameters(command=self.command, args=["-m", self.module])
+        params = StdioServerParameters(
+            command=self.command,
+            args=["-m", self.module],
+            env=dict(os.environ),
+        )
         async with Client(params) as client:
             result = await client.call_tool("search_date_window", {"request_json": request_json, "limit": self.limit})
             return decode_tool_result(result)
 
     async def _call_negotiation(self, request_json: dict, flags: dict[str, Any]) -> dict:
         from mcp import Client, StdioServerParameters
-        params = StdioServerParameters(command=self.command, args=["-m", self.module])
+        params = StdioServerParameters(
+            command=self.command,
+            args=["-m", self.module],
+            env=dict(os.environ),
+        )
         args = {"request_json": request_json, "limit": self.limit, **{
             key: bool(flags.get(key, False)) for key in
             ("allow_nights", "allow_date_shift", "allow_budget_increase")}}

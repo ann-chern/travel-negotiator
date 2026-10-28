@@ -6,6 +6,8 @@ provider responses to the LLM.
 """
 from __future__ import annotations
 import hashlib
+import logging
+import sys
 from pydantic import ValidationError
 
 from app.data.catalog import generate_candidates
@@ -19,9 +21,25 @@ from app.services.optimizer import search_and_negotiate
 from app.services.negotiation import search_with_plan_changes
 from app.services.seasonality import SeasonalityProvider, OpenMeteoSeasonalityProvider
 import os
+from functools import lru_cache
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.WARNING)
+logger.propagate = False
+if not any(getattr(handler, "_mcp_stderr", False) for handler in logger.handlers):
+    handler = logging.StreamHandler(sys.stderr)
+    handler.setFormatter(logging.Formatter("%(levelname)s %(name)s: %(message)s"))
+    handler._mcp_stderr = True  # type: ignore[attr-defined]
+    logger.addHandler(handler)
+
+@lru_cache(maxsize=2)
+def _seasonality_provider(mode: str):
+    return OpenMeteoSeasonalityProvider(allow_legacy_fallback=True) if mode == "openmeteo" else SeasonalityProvider()
+
 
 def _seasonality():
-    return OpenMeteoSeasonalityProvider(allow_legacy_fallback=True) if os.environ.get("TN_SEASONALITY_PROVIDER") == "openmeteo" else SeasonalityProvider()
+    # Read the JSON cache once per process; refresh it before starting Docker.
+    return _seasonality_provider(os.environ.get("TN_SEASONALITY_PROVIDER", "legacy"))
 
 
 def _parse_request(request_json: dict) -> TripRequest:
@@ -115,13 +133,24 @@ def _portfolio(request: TripRequest, offers: list[OfferSummary], limit: int,
     else:
         pick("Самый доступный по цене", sorted(ranked, key=lambda o: (float(o.price_rub), -(o.match_score or 0), o.offer_id)))
         if len(chosen) < limit:
-            pick("Повышенный комфорт", sorted(ranked, key=lambda o: (-(o.hotel_stars or 0),
-                0 if o.meal_plan in ("breakfast", "half_board", "all_inclusive") else 1,
-                -(o.match_score or 0), float(o.price_rub), o.offer_id)))
+            # A comfort label is justified only by strictly better accommodation,
+            # not merely by the candidate's role in portfolio diversification.
+            baseline = chosen[0]
+            meal_order = {"none": 0, "breakfast": 1, "half_board": 2, "full_board": 3, "all_inclusive": 4}
+            def comfort(o):
+                return ((o.hotel_stars or 0), meal_order.get(o.meal_plan, 0))
+            upgrades = [o for o in ranked if comfort(o) > comfort(baseline)]
+            if upgrades:
+                pick("Повышенный комфорт", sorted(upgrades, key=lambda o: (
+                    -(o.hotel_stars or 0), -meal_order.get(o.meal_plan, 0),
+                    -(o.match_score or 0), float(o.price_rub), o.offer_id)))
         if len(chosen) < limit:
-            pick("Меньше пересадок", sorted(ranked, key=lambda o: (
-                (o.outbound_stops or 0)+(o.inbound_stops or 0),
-                -(o.match_score or 0), float(o.price_rub), o.offer_id)))
+            baseline_stops = (chosen[0].outbound_stops or 0) + (chosen[0].inbound_stops or 0)
+            faster = [o for o in ranked if (o.outbound_stops or 0) + (o.inbound_stops or 0) < baseline_stops]
+            if faster:
+                pick("Меньше пересадок", sorted(faster, key=lambda o: (
+                    (o.outbound_stops or 0)+(o.inbound_stops or 0),
+                    -(o.match_score or 0), float(o.price_rub), o.offer_id)))
 
     while len(chosen) < min(limit, len(ranked)):
         def novelty(candidate: OfferSummary) -> tuple:
@@ -287,8 +316,31 @@ class CatalogService:
             return SearchOffersResponse(status="unsupported", message="Диапазон больше 31 дня: уточните период")
         found: list[OfferSummary] = []
         had_no_match = False
+        logger.warning(
+            "MCP DEBUG: extended=%s, destination=%s, "
+            "dates=%s..%s, nights=%s, adults=%s",
+            os.environ.get("TN_EXTENDED_DEMO"),
+            request.destination,
+            first,
+            last,
+            request.nights,
+            request.travelers.adults,
+        )
         for offset in range(count):
             concrete = request.model_copy(update={"departure_date": first + timedelta(days=offset), "date_window": None})
+            if offset == 0:
+                from app.data.catalog import active_cities, generate_candidates
+                candidates = generate_candidates(
+                    concrete,
+                    max_results=1000,
+                )
+                logger.warning(
+                    "MCP DEBUG: active_cities=%s, generated=%s, "
+                    "destinations=%s",
+                    len(active_cities()),
+                    len(candidates),
+                    sorted({c.destination_id for c in candidates}),
+                )
             # Keep all eligible destinations before preference ranking; the old
             # per-day top-40 price cutoff silently removed long-haul offers.
             result = self.search_offers(concrete.model_dump(mode="json"), limit=100)

@@ -524,7 +524,7 @@ class GraphTravelAgent:
             if dates:
                 dates_text = ", ".join(f"{i + 1}: {day}" for i, day in enumerate(dates))
                 return {"response": (f"Даты вылета для предложенных вариантов ({dates_text}). "
-                        + (text or fallback) + " Цены и наличие синтетические.")}
+                        + (text or fallback))}
         response = text or fallback
         audit_event("agent.recommendation.completed", option_ids=[o.get("id") for o in s.options],
                     response=response)

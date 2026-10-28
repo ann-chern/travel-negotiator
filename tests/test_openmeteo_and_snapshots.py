@@ -15,7 +15,7 @@ def test_openmeteo_data_ingestion_and_unknown_sea(tmp_path):
         def __enter__(self): return self
         def __exit__(self, *args): pass
     def opener(url, timeout):
-        if 'archive-api' in url:
+        if 'daily=temperature_2m_max' in url:
             return ResponseFile({'daily': {'time': [f'2025-09-{n:02d}' for n in range(1, 11)], 'temperature_2m_max': [28]*10}})
         return ResponseFile({'hourly': {'time': [f'2025-09-01T{n:02d}:00' for n in range(24)], 'sea_surface_temperature': [25]*24}})
     class ResponseFile(Response):

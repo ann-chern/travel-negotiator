@@ -1,6 +1,7 @@
 """Actual MCP transport smoke test over stdio."""
 import asyncio
 import json
+import os
 import sys
 from datetime import date
 
@@ -15,6 +16,7 @@ async def smoke() -> None:
     params = StdioServerParameters(
         command=sys.executable,
         args=["-m", "app.mcp_catalog.server"],
+        env=dict(os.environ),
     )
     async with Client(params) as client:
         tools = await client.list_tools()

@@ -1,0 +1,966 @@
+{
+  "dataset": "historical monthly averages, not forecast",
+  "collected_at": "2026-10-28T18:36:40.299858+00:00",
+  "cities": {
+    "antalya": {
+      "city_id": "antalya",
+      "latitude": 36.8969,
+      "longitude": 30.7133,
+      "years": [
+        2022,
+        2025
+      ],
+      "source": "Open-Meteo / ERA5 + marine",
+      "air_url": "https://archive-api.open-meteo.com/v1/archive",
+      "sea_url": "https://archive-api.open-meteo.com/v1/archive",
+      "sea_data_issue": null,
+      "sea_coordinates": null,
+      "months": {
+        "1": {
+          "air_c": 16.1,
+          "sea_c": null
+        },
+        "2": {
+          "air_c": 16.2,
+          "sea_c": null
+        },
+        "3": {
+          "air_c": 19.3,
+          "sea_c": null
+        },
+        "4": {
+          "air_c": 23.8,
+          "sea_c": 18.8
+        },
+        "5": {
+          "air_c": 28.0,
+          "sea_c": 20.7
+        },
+        "6": {
+          "air_c": 35.0,
+          "sea_c": 24.5
+        },
+        "7": {
+          "air_c": 38.7,
+          "sea_c": 27.5
+        },
+        "8": {
+          "air_c": 37.2,
+          "sea_c": 28.9
+        },
+        "9": {
+          "air_c": 34.3,
+          "sea_c": 27.4
+        },
+        "10": {
+          "air_c": 28.7,
+          "sea_c": 24.0
+        },
+        "11": {
+          "air_c": 22.6,
+          "sea_c": 21.9
+        },
+        "12": {
+          "air_c": 17.8,
+          "sea_c": 20.0
+        }
+      }
+    },
+    "istanbul": {
+      "city_id": "istanbul",
+      "latitude": 41.0082,
+      "longitude": 28.9784,
+      "years": [
+        2022,
+        2025
+      ],
+      "source": "Open-Meteo / ERA5 + marine",
+      "air_url": "https://archive-api.open-meteo.com/v1/archive",
+      "sea_url": "https://archive-api.open-meteo.com/v1/archive",
+      "sea_data_issue": null,
+      "sea_coordinates": null,
+      "months": {
+        "1": {
+          "air_c": 10.3,
+          "sea_c": null
+        },
+        "2": {
+          "air_c": 9.6,
+          "sea_c": null
+        },
+        "3": {
+          "air_c": 11.6,
+          "sea_c": null
+        },
+        "4": {
+          "air_c": 15.6,
+          "sea_c": 12.3
+        },
+        "5": {
+          "air_c": 19.4,
+          "sea_c": 15.7
+        },
+        "6": {
+          "air_c": 25.7,
+          "sea_c": 21.0
+        },
+        "7": {
+          "air_c": 28.7,
+          "sea_c": 24.1
+        },
+        "8": {
+          "air_c": 28.4,
+          "sea_c": 24.0
+        },
+        "9": {
+          "air_c": 25.0,
+          "sea_c": 23.1
+        },
+        "10": {
+          "air_c": 20.1,
+          "sea_c": 19.1
+        },
+        "11": {
+          "air_c": 16.8,
+          "sea_c": 16.9
+        },
+        "12": {
+          "air_c": 12.6,
+          "sea_c": 13.9
+        }
+      }
+    },
+    "sochi": {
+      "city_id": "sochi",
+      "latitude": 43.5855,
+      "longitude": 39.7231,
+      "years": [
+        2022,
+        2025
+      ],
+      "source": "Open-Meteo / ERA5 + marine",
+      "air_url": "https://archive-api.open-meteo.com/v1/archive",
+      "sea_url": "https://archive-api.open-meteo.com/v1/archive",
+      "sea_data_issue": null,
+      "sea_coordinates": null,
+      "months": {
+        "1": {
+          "air_c": 9.8,
+          "sea_c": null
+        },
+        "2": {
+          "air_c": 8.6,
+          "sea_c": null
+        },
+        "3": {
+          "air_c": 10.9,
+          "sea_c": null
+        },
+        "4": {
+          "air_c": 15.3,
+          "sea_c": 12.9
+        },
+        "5": {
+          "air_c": 17.8,
+          "sea_c": 16.0
+        },
+        "6": {
+          "air_c": 23.3,
+          "sea_c": 21.6
+        },
+        "7": {
+          "air_c": 26.0,
+          "sea_c": 26.0
+        },
+        "8": {
+          "air_c": 27.7,
+          "sea_c": 27.8
+        },
+        "9": {
+          "air_c": 24.2,
+          "sea_c": 24.8
+        },
+        "10": {
+          "air_c": 19.0,
+          "sea_c": 19.7
+        },
+        "11": {
+          "air_c": 16.2,
+          "sea_c": 16.8
+        },
+        "12": {
+          "air_c": 12.3,
+          "sea_c": 14.6
+        }
+      }
+    },
+    "dubai": {
+      "city_id": "dubai",
+      "latitude": 25.2048,
+      "longitude": 55.2708,
+      "years": [
+        2022,
+        2025
+      ],
+      "source": "Open-Meteo / ERA5 + marine",
+      "air_url": "https://archive-api.open-meteo.com/v1/archive",
+      "sea_url": "https://archive-api.open-meteo.com/v1/archive",
+      "sea_data_issue": null,
+      "sea_coordinates": null,
+      "months": {
+        "1": {
+          "air_c": 25.3,
+          "sea_c": null
+        },
+        "2": {
+          "air_c": 26.9,
+          "sea_c": null
+        },
+        "3": {
+          "air_c": 30.4,
+          "sea_c": null
+        },
+        "4": {
+          "air_c": 34.5,
+          "sea_c": null
+        },
+        "5": {
+          "air_c": 38.8,
+          "sea_c": null
+        },
+        "6": {
+          "air_c": 41.8,
+          "sea_c": null
+        },
+        "7": {
+          "air_c": 42.4,
+          "sea_c": null
+        },
+        "8": {
+          "air_c": 42.7,
+          "sea_c": null
+        },
+        "9": {
+          "air_c": 40.5,
+          "sea_c": null
+        },
+        "10": {
+          "air_c": 36.7,
+          "sea_c": null
+        },
+        "11": {
+          "air_c": 32.3,
+          "sea_c": null
+        },
+        "12": {
+          "air_c": 27.5,
+          "sea_c": null
+        }
+      }
+    },
+    "phuket": {
+      "city_id": "phuket",
+      "latitude": 7.8804,
+      "longitude": 98.3923,
+      "years": [
+        2022,
+        2025
+      ],
+      "source": "Open-Meteo / ERA5 + marine",
+      "air_url": "https://archive-api.open-meteo.com/v1/archive",
+      "sea_url": "https://archive-api.open-meteo.com/v1/archive",
+      "sea_data_issue": null,
+      "sea_coordinates": null,
+      "months": {
+        "1": {
+          "air_c": 28.7,
+          "sea_c": null
+        },
+        "2": {
+          "air_c": 29.1,
+          "sea_c": null
+        },
+        "3": {
+          "air_c": 29.4,
+          "sea_c": null
+        },
+        "4": {
+          "air_c": 29.5,
+          "sea_c": 30.8
+        },
+        "5": {
+          "air_c": 29.4,
+          "sea_c": 30.4
+        },
+        "6": {
+          "air_c": 28.9,
+          "sea_c": 29.7
+        },
+        "7": {
+          "air_c": 28.7,
+          "sea_c": 29.7
+        },
+        "8": {
+          "air_c": 28.6,
+          "sea_c": 29.8
+        },
+        "9": {
+          "air_c": 28.2,
+          "sea_c": 29.1
+        },
+        "10": {
+          "air_c": 28.0,
+          "sea_c": 29.3
+        },
+        "11": {
+          "air_c": 28.0,
+          "sea_c": 28.8
+        },
+        "12": {
+          "air_c": 28.4,
+          "sea_c": 28.5
+        }
+      }
+    },
+    "bali": {
+      "city_id": "bali",
+      "latitude": -8.4095,
+      "longitude": 115.1889,
+      "years": [
+        2022,
+        2025
+      ],
+      "source": "Open-Meteo / ERA5 + marine",
+      "air_url": "https://archive-api.open-meteo.com/v1/archive",
+      "sea_url": "https://archive-api.open-meteo.com/v1/archive",
+      "sea_data_issue": null,
+      "sea_coordinates": null,
+      "months": {
+        "1": {
+          "air_c": 27.4,
+          "sea_c": null
+        },
+        "2": {
+          "air_c": 27.7,
+          "sea_c": null
+        },
+        "3": {
+          "air_c": 27.9,
+          "sea_c": null
+        },
+        "4": {
+          "air_c": 27.6,
+          "sea_c": 28.6
+        },
+        "5": {
+          "air_c": 27.2,
+          "sea_c": 28.9
+        },
+        "6": {
+          "air_c": 26.3,
+          "sea_c": 28.7
+        },
+        "7": {
+          "air_c": 25.1,
+          "sea_c": 27.7
+        },
+        "8": {
+          "air_c": 25.4,
+          "sea_c": 27.6
+        },
+        "9": {
+          "air_c": 26.0,
+          "sea_c": 27.7
+        },
+        "10": {
+          "air_c": 27.0,
+          "sea_c": 28.7
+        },
+        "11": {
+          "air_c": 27.5,
+          "sea_c": 28.4
+        },
+        "12": {
+          "air_c": 27.3,
+          "sea_c": 28.5
+        }
+      }
+    },
+    "maldives": {
+      "city_id": "maldives",
+      "latitude": 4.1755,
+      "longitude": 73.5093,
+      "years": [
+        2022,
+        2025
+      ],
+      "source": "Open-Meteo / ERA5 + marine",
+      "air_url": "https://archive-api.open-meteo.com/v1/archive",
+      "sea_url": "https://archive-api.open-meteo.com/v1/archive",
+      "sea_data_issue": null,
+      "sea_coordinates": null,
+      "months": {
+        "1": {
+          "air_c": 27.6,
+          "sea_c": null
+        },
+        "2": {
+          "air_c": 28.0,
+          "sea_c": null
+        },
+        "3": {
+          "air_c": 28.5,
+          "sea_c": null
+        },
+        "4": {
+          "air_c": 29.0,
+          "sea_c": 30.5
+        },
+        "5": {
+          "air_c": 28.9,
+          "sea_c": 30.0
+        },
+        "6": {
+          "air_c": 28.7,
+          "sea_c": 29.6
+        },
+        "7": {
+          "air_c": 28.6,
+          "sea_c": 29.5
+        },
+        "8": {
+          "air_c": 28.2,
+          "sea_c": 28.9
+        },
+        "9": {
+          "air_c": 28.0,
+          "sea_c": 29.2
+        },
+        "10": {
+          "air_c": 28.0,
+          "sea_c": 29.2
+        },
+        "11": {
+          "air_c": 27.7,
+          "sea_c": 28.9
+        },
+        "12": {
+          "air_c": 27.8,
+          "sea_c": 28.3
+        }
+      }
+    },
+    "sharm": {
+      "city_id": "sharm",
+      "latitude": 27.9158,
+      "longitude": 34.3299,
+      "years": [
+        2022,
+        2025
+      ],
+      "source": "Open-Meteo / ERA5 + marine",
+      "air_url": "https://archive-api.open-meteo.com/v1/archive",
+      "sea_url": "https://archive-api.open-meteo.com/v1/archive",
+      "sea_data_issue": null,
+      "sea_coordinates": null,
+      "months": {
+        "1": {
+          "air_c": 23.7,
+          "sea_c": null
+        },
+        "2": {
+          "air_c": 23.7,
+          "sea_c": null
+        },
+        "3": {
+          "air_c": 27.7,
+          "sea_c": null
+        },
+        "4": {
+          "air_c": 33.0,
+          "sea_c": 23.7
+        },
+        "5": {
+          "air_c": 35.6,
+          "sea_c": 24.6
+        },
+        "6": {
+          "air_c": 39.4,
+          "sea_c": 26.2
+        },
+        "7": {
+          "air_c": 40.0,
+          "sea_c": 29.1
+        },
+        "8": {
+          "air_c": 40.8,
+          "sea_c": 29.5
+        },
+        "9": {
+          "air_c": 38.2,
+          "sea_c": 28.5
+        },
+        "10": {
+          "air_c": 34.2,
+          "sea_c": 27.3
+        },
+        "11": {
+          "air_c": 29.9,
+          "sea_c": 27.1
+        },
+        "12": {
+          "air_c": 25.8,
+          "sea_c": 25.6
+        }
+      }
+    },
+    "hurghada": {
+      "city_id": "hurghada",
+      "latitude": 27.2579,
+      "longitude": 33.8116,
+      "years": [
+        2022,
+        2025
+      ],
+      "source": "Open-Meteo / ERA5 + marine",
+      "air_url": "https://archive-api.open-meteo.com/v1/archive",
+      "sea_url": "https://archive-api.open-meteo.com/v1/archive",
+      "sea_data_issue": null,
+      "sea_coordinates": null,
+      "months": {
+        "1": {
+          "air_c": 21.6,
+          "sea_c": null
+        },
+        "2": {
+          "air_c": 21.2,
+          "sea_c": null
+        },
+        "3": {
+          "air_c": 24.4,
+          "sea_c": null
+        },
+        "4": {
+          "air_c": 28.3,
+          "sea_c": 23.8
+        },
+        "5": {
+          "air_c": 30.7,
+          "sea_c": 24.8
+        },
+        "6": {
+          "air_c": 33.8,
+          "sea_c": 26.2
+        },
+        "7": {
+          "air_c": 35.0,
+          "sea_c": 29.0
+        },
+        "8": {
+          "air_c": 35.5,
+          "sea_c": 29.3
+        },
+        "9": {
+          "air_c": 33.6,
+          "sea_c": 28.5
+        },
+        "10": {
+          "air_c": 30.3,
+          "sea_c": 27.3
+        },
+        "11": {
+          "air_c": 27.0,
+          "sea_c": 27.3
+        },
+        "12": {
+          "air_c": 23.5,
+          "sea_c": 25.6
+        }
+      }
+    },
+    "tbilisi": {
+      "city_id": "tbilisi",
+      "latitude": 41.7151,
+      "longitude": 44.8271,
+      "years": [
+        2022,
+        2025
+      ],
+      "source": "Open-Meteo / ERA5 + marine",
+      "air_url": "https://archive-api.open-meteo.com/v1/archive",
+      "sea_url": "https://archive-api.open-meteo.com/v1/archive",
+      "sea_data_issue": null,
+      "sea_coordinates": null,
+      "months": {
+        "1": {
+          "air_c": 6.5,
+          "sea_c": null
+        },
+        "2": {
+          "air_c": 7.7,
+          "sea_c": null
+        },
+        "3": {
+          "air_c": 11.7,
+          "sea_c": null
+        },
+        "4": {
+          "air_c": 18.5,
+          "sea_c": null
+        },
+        "5": {
+          "air_c": 20.8,
+          "sea_c": null
+        },
+        "6": {
+          "air_c": 26.4,
+          "sea_c": null
+        },
+        "7": {
+          "air_c": 29.2,
+          "sea_c": null
+        },
+        "8": {
+          "air_c": 31.2,
+          "sea_c": null
+        },
+        "9": {
+          "air_c": 25.1,
+          "sea_c": null
+        },
+        "10": {
+          "air_c": 19.1,
+          "sea_c": null
+        },
+        "11": {
+          "air_c": 14.5,
+          "sea_c": null
+        },
+        "12": {
+          "air_c": 7.8,
+          "sea_c": null
+        }
+      }
+    },
+    "yerevan": {
+      "city_id": "yerevan",
+      "latitude": 40.1792,
+      "longitude": 44.4991,
+      "years": [
+        2022,
+        2025
+      ],
+      "source": "Open-Meteo / ERA5 + marine",
+      "air_url": "https://archive-api.open-meteo.com/v1/archive",
+      "sea_url": "https://archive-api.open-meteo.com/v1/archive",
+      "sea_data_issue": null,
+      "sea_coordinates": null,
+      "months": {
+        "1": {
+          "air_c": 5.0,
+          "sea_c": null
+        },
+        "2": {
+          "air_c": 6.3,
+          "sea_c": null
+        },
+        "3": {
+          "air_c": 12.7,
+          "sea_c": null
+        },
+        "4": {
+          "air_c": 20.0,
+          "sea_c": null
+        },
+        "5": {
+          "air_c": 23.2,
+          "sea_c": null
+        },
+        "6": {
+          "air_c": 30.9,
+          "sea_c": null
+        },
+        "7": {
+          "air_c": 33.8,
+          "sea_c": null
+        },
+        "8": {
+          "air_c": 35.5,
+          "sea_c": null
+        },
+        "9": {
+          "air_c": 29.0,
+          "sea_c": null
+        },
+        "10": {
+          "air_c": 21.2,
+          "sea_c": null
+        },
+        "11": {
+          "air_c": 15.0,
+          "sea_c": null
+        },
+        "12": {
+          "air_c": 7.7,
+          "sea_c": null
+        }
+      }
+    },
+    "bangkok": {
+      "city_id": "bangkok",
+      "latitude": 13.7563,
+      "longitude": 100.5018,
+      "years": [
+        2022,
+        2025
+      ],
+      "source": "Open-Meteo / ERA5 + marine",
+      "air_url": "https://archive-api.open-meteo.com/v1/archive",
+      "sea_url": "https://archive-api.open-meteo.com/v1/archive",
+      "sea_data_issue": null,
+      "sea_coordinates": null,
+      "months": {
+        "1": {
+          "air_c": 31.8,
+          "sea_c": null
+        },
+        "2": {
+          "air_c": 32.8,
+          "sea_c": null
+        },
+        "3": {
+          "air_c": 34.0,
+          "sea_c": null
+        },
+        "4": {
+          "air_c": 35.3,
+          "sea_c": 31.4
+        },
+        "5": {
+          "air_c": 34.1,
+          "sea_c": 31.0
+        },
+        "6": {
+          "air_c": 33.9,
+          "sea_c": 30.3
+        },
+        "7": {
+          "air_c": 33.0,
+          "sea_c": 29.7
+        },
+        "8": {
+          "air_c": 33.7,
+          "sea_c": 29.9
+        },
+        "9": {
+          "air_c": 32.6,
+          "sea_c": 29.6
+        },
+        "10": {
+          "air_c": 32.5,
+          "sea_c": 29.6
+        },
+        "11": {
+          "air_c": 32.0,
+          "sea_c": 28.3
+        },
+        "12": {
+          "air_c": 31.7,
+          "sea_c": 27.1
+        }
+      }
+    },
+    "goa": {
+      "city_id": "goa",
+      "latitude": 15.2993,
+      "longitude": 74.124,
+      "years": [
+        2022,
+        2025
+      ],
+      "source": "Open-Meteo / ERA5 + marine",
+      "air_url": "https://archive-api.open-meteo.com/v1/archive",
+      "sea_url": "https://archive-api.open-meteo.com/v1/archive",
+      "sea_data_issue": null,
+      "sea_coordinates": null,
+      "months": {
+        "1": {
+          "air_c": 30.8,
+          "sea_c": null
+        },
+        "2": {
+          "air_c": 31.8,
+          "sea_c": null
+        },
+        "3": {
+          "air_c": 32.1,
+          "sea_c": null
+        },
+        "4": {
+          "air_c": 32.1,
+          "sea_c": 30.6
+        },
+        "5": {
+          "air_c": 31.6,
+          "sea_c": 30.4
+        },
+        "6": {
+          "air_c": 29.2,
+          "sea_c": 28.8
+        },
+        "7": {
+          "air_c": 27.2,
+          "sea_c": 27.5
+        },
+        "8": {
+          "air_c": 27.7,
+          "sea_c": 26.6
+        },
+        "9": {
+          "air_c": 28.1,
+          "sea_c": 27.3
+        },
+        "10": {
+          "air_c": 30.0,
+          "sea_c": 28.2
+        },
+        "11": {
+          "air_c": 31.5,
+          "sea_c": 28.0
+        },
+        "12": {
+          "air_c": 31.5,
+          "sea_c": 27.1
+        }
+      }
+    },
+    "colombo": {
+      "city_id": "colombo",
+      "latitude": 6.9271,
+      "longitude": 79.8612,
+      "years": [
+        2022,
+        2025
+      ],
+      "source": "Open-Meteo / ERA5 + marine",
+      "air_url": "https://archive-api.open-meteo.com/v1/archive",
+      "sea_url": "https://archive-api.open-meteo.com/v1/archive",
+      "sea_data_issue": null,
+      "sea_coordinates": null,
+      "months": {
+        "1": {
+          "air_c": 31.8,
+          "sea_c": null
+        },
+        "2": {
+          "air_c": 34.0,
+          "sea_c": null
+        },
+        "3": {
+          "air_c": 34.0,
+          "sea_c": null
+        },
+        "4": {
+          "air_c": 33.0,
+          "sea_c": null
+        },
+        "5": {
+          "air_c": 31.2,
+          "sea_c": null
+        },
+        "6": {
+          "air_c": 30.6,
+          "sea_c": null
+        },
+        "7": {
+          "air_c": 30.5,
+          "sea_c": null
+        },
+        "8": {
+          "air_c": 30.4,
+          "sea_c": null
+        },
+        "9": {
+          "air_c": 30.3,
+          "sea_c": null
+        },
+        "10": {
+          "air_c": 30.3,
+          "sea_c": null
+        },
+        "11": {
+          "air_c": 30.6,
+          "sea_c": null
+        },
+        "12": {
+          "air_c": 31.0,
+          "sea_c": null
+        }
+      }
+    },
+    "kazan": {
+      "city_id": "kazan",
+      "latitude": 55.7879,
+      "longitude": 49.1233,
+      "years": [
+        2022,
+        2025
+      ],
+      "source": "Open-Meteo / ERA5 + marine",
+      "air_url": "https://archive-api.open-meteo.com/v1/archive",
+      "sea_url": "https://archive-api.open-meteo.com/v1/archive",
+      "sea_data_issue": null,
+      "sea_coordinates": null,
+      "months": {
+        "1": {
+          "air_c": -7.1,
+          "sea_c": null
+        },
+        "2": {
+          "air_c": -5.2,
+          "sea_c": null
+        },
+        "3": {
+          "air_c": 2.2,
+          "sea_c": null
+        },
+        "4": {
+          "air_c": 13.4,
+          "sea_c": null
+        },
+        "5": {
+          "air_c": 17.0,
+          "sea_c": null
+        },
+        "6": {
+          "air_c": 22.7,
+          "sea_c": null
+        },
+        "7": {
+          "air_c": 25.9,
+          "sea_c": null
+        },
+        "8": {
+          "air_c": 24.7,
+          "sea_c": null
+        },
+        "9": {
+          "air_c": 19.0,
+          "sea_c": null
+        },
+        "10": {
+          "air_c": 9.3,
+          "sea_c": null
+        },
+        "11": {
+          "air_c": 2.1,
+          "sea_c": null
+        },
+        "12": {
+          "air_c": -4.6,
+          "sea_c": null
+        }
+      }
+    }
+  }
+}

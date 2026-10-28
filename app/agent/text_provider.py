@@ -34,6 +34,21 @@ class YandexTextGenerator:
         if task not in PROMPTS:
             raise ValueError("Unknown task")
         task_payload = dict(payload)
+        if task == "recommendation":
+            # A compact factual projection: the UI has full cards, while the LLM
+            # needs only enough evidence to explain trade-offs. Saves prompt tokens.
+            request = task_payload.get("request", {})
+            if isinstance(request, dict):
+                task_payload["request"] = {k: request.get(k) for k in (
+                    "origin", "destination", "departure_date", "date_window",
+                    "nights", "travelers", "budget", "preferences") if request.get(k) is not None}
+            fields = ("id", "destination", "hotel", "price_rub", "departure_date",
+                      "nights", "score", "hotel_stars", "meal_plan",
+                      "outbound_stops", "inbound_stops", "tradeoffs", "match_reasons")
+            task_payload["options"] = [
+                {k: row[k] for k in fields if k in row}
+                for row in task_payload.get("options", []) if isinstance(row, dict)
+            ]
         # Avoid duplicating the full structured offer list in generated text.
         task_payload["output_style"] = (
             "Отвечай по-русски, 2–4 коротких предложения, без Markdown-таблиц; "

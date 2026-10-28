@@ -1,6 +1,7 @@
 """MCP-only synchronous cart and demo booking adapter."""
 from __future__ import annotations
 import asyncio
+import os
 import sys
 from typing import Any
 from pydantic import BaseModel
@@ -20,7 +21,11 @@ class McpCatalogBooking:
 
     async def _invoke(self, tool_name: str, args: dict[str, Any]) -> dict:
         from mcp import Client, StdioServerParameters
-        params = StdioServerParameters(command=self.command, args=['-m', self.module])
+        params = StdioServerParameters(
+            command=self.command,
+            args=['-m', self.module],
+            env=dict(os.environ),
+        )
         async with Client(params) as client:
             result = await client.call_tool(tool_name, args)
             return decode_tool_result(result)

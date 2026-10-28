@@ -10,7 +10,7 @@ services:
       PYTHONUNBUFFERED: "1"
       TN_EXTENDED_DEMO: "1"
       TN_SEASONALITY_PROVIDER: "openmeteo"
-      TN_LOG_USER_MESSAGES: "1"
+      TN_LOG_USER_MESSAGES: "0"
     init: true
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=3)"]

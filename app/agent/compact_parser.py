@@ -64,7 +64,7 @@ class CompactYandexTurnParser:
 
     def __init__(self, *, model: str | None = None, api_key: str | None = None,
                  folder_id: str | None = None, client=None, timeout: float = 20.0,
-                 max_tokens: int = 650, retry_invalid: bool = True):
+                 max_tokens: int = 750, retry_invalid: bool = True):
         folder = folder_id or os.getenv("YANDEX_FOLDER_ID")
         if not folder:
             raise RuntimeError("YANDEX_FOLDER_ID is required")

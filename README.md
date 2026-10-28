@@ -38,91 +38,26 @@ docker compose up --build
 
 При установленном `uv` и Python 3.12: `uv sync --frozen --group dev && uv run python -m pytest -q`.
 
-## Сдача и секреты
-
-`*.env` и ключи не коммитить. По дополнительным правилам хакатона необходимо создать отдельный ключ для жюри и положить в корень репозитория `secrets.env.age`, зашифрованный **их публичным age-ключом**. Этот файл нельзя подготовить без ваших действующих секретов; его нужно добавить самостоятельно до сдачи. Дополнить README ссылкой на публичный скринкаст и создать тег `submission` на финальном коммите основной ветки.
-
-### Улучшения обработки намерений (2026-10-28)
-
-- Диапазон «хочу в Стамбул с 10 по 15 ноября» трактуется как поездка на пять ночей, а не окно вылета.
-- Диапазон «вылет с 5 по 7 ноября» сохраняется как гибкое окно вылета.
-- «На два дня позже» переносит даты выбранного запроса без изменения остальных требований.
-- Для направления за пределами демонстрационного каталога агент сообщает об ограничении до уточнений.
-- Добавлены регрессионные тесты `tests/test_intent_regressions.py`.
-
-Это точечные эвристики для проверенных русскоязычных формулировок, а не универсальное распознавание всех дат или направлений. Запуск с реальной LLM необходимо проверить отдельно.
-
-## Interpretation and decision policy
-
-The graph uses `app/agent/intent_pipeline.py` as the common calendar and
-clarification boundary. Calendar intent is typed (`exact_stay`,
-`flexible_departure`, `unchanged`) and is applied atomically to `TripRequest`.
-The decision policy distinguishes `search`, `clarify`, and `catalog_gap`.
-A flexible month is a usable search interval, not a missing exact date.
-Months without an explicit year refer to their next future occurrence; the
-catalog may still lack coverage for that year. Existing hard constraints are
-preserved during calendar-only changes. Optional LLM extraction supplements
-missing facts, but a failed LLM call cannot silently overwrite known fields.
-
-The system still uses an intentionally limited demo inventory and cannot
-reliably determine beach suitability from weather for all locations. Real
-model-in-the-loop quality and Docker smoke testing must be repeated before
-submission. Mock catalog prices are not real availability.
-
-### Semantic travel goals
-
-Both parsers may return an optional `travel_goal` (`beach`, `culture`, `nature`,
-`city`, `family`, `relax`). The agent stores this as a **soft** destination-tag
-preference; the flexible-date catalog first orders matching tagged destinations,
-then diversifies across cities. The tags are synthetic metadata and do **not**
-verify climate, sea temperature or suitability for swimming. The catalog retains
-strict destination filtering when users explicitly name a city. Unsupported
-future dates produce honest no-coverage responses, not fabricated offers.
-
-### Known gaps before submission
-
-- LLM extraction needs a live Yandex API regression run and evaluation on unseen
-  formulations. Passing offline tests does not prove semantic accuracy.
-- The parser fallback still includes some narrowly scoped Russian rules for
-  high-confidence explicit facts. The agent is **not** language-universal.
-- The catalog has only three destinations with synthetic prices, and does not
-  contain weather or climate information. Prioritization by beach tags is not
-  proof of good swimming weather for the selected month.
-- For requests in days, the prototype currently treats day counts as nights;
-  this convention should be clarified in user-facing recommendations.
 
 
-## SeasonalityProvider (offline monthly climate normals)
+## Архитектура и обработка запроса
 
-The read-only `app/services/seasonality.py` uses a small, sourced set of historical
-monthly climate averages for Antalya and Istanbul (12 months each), and December
-for Sochi. Missing city/month pairs are intentionally **unknown**, not guessed.
-This is **not** a live weather forecast, hotel beach condition or guarantee of
-comfortable swimming. Seasonality changes the soft beach-preference ranking,
-not the hard catalog validation; the user can still choose a cool-season offer.
+- `app/agent/` — интерпретация текста, LangGraph, управление состоянием диалога и перепланирование.
+- `app/mcp_catalog/` — отдельный MCP-процесс каталога и контракт предложений.
+- `app/data/` — расширяемый синтетический каталог из 15 направлений, профили маршрутов и цен.
+- `app/services/` — оценка допустимости, ранжирование, сезонность Open-Meteo.
+- `app/web/` — FastAPI, SSE и веб-интерфейс.
 
-Sources (historical normal tables; verify licensing before redistribution):
-
-- Antalya land-air averages and Turkish Mediterranean regional sea-water averages:
-  https://nighthopper.de/en/reiseblog/antalya-tuerkische-riviera
-- Istanbul land-air and Marmara Sea averages:
-  https://sarebanhotel.com/en/travel-tips/istanbul-weather-by-month/
-- Sochi December climate summary (2009–2025 reference period):
-  https://www.whereandwhen.net/when/europe/russia/sochi/month/december/
-
-Monthly normals from different sources/periods are not perfectly comparable.
-The product heuristic: both sea >=23 °C and mean daytime high >=24 °C indicates
-favorable; both sea >=20 °C and daytime high >=21 °C indicates marginal; other
-known values indicate unfavorable. These cutoffs are UX heuristics, not external
-meteorological standards. Do not treat a beach destination tag as sufficient
-for winter swimming. Full climate coverage or a licensed dataset is needed
-before expanding recommendations beyond the current three cities.
+Гибкие месяцы обрабатываются как окна дат, при уточнениях сохраняются неназванные
+параметры, а изменение бюджета не снимает ограничение без указания пользователя.
+Период поиска по одной операции ограничен 31 днём. Расписание, цены и наличие —
+моковые; демонстрационное подтверждение не является бронированием.
 
 ## Climate and historical catalog (2026 extension)
 
 ### Seasonal data: Open-Meteo
 
-The offline-compatible `OpenMeteoSeasonalityProvider` reads a checked-in or locally
+The offline-compatible `OpenMeteoSeasonalityProvider` reads a locally
 refreshed `app/data/openmeteo_normals.json` file. It **never** calls an API from a
 chat request, avoiding delays or outages during judging. Historical ERA5 daily
 maximum air temperatures and Open-Meteo marine sea-surface temperatures are
@@ -134,7 +69,7 @@ retained. Thus real Open-Meteo coverage is **not** claimed until refreshed.
 To prefetch (requires internet, Python project environment):
 
 ```bash
-uv run python -m scripts.refresh_climate --start-year 2022 --end-year 2025
+uv run python -m scripts.refresh_climate --start-year 2022 --end-year 2025 --include-extended
 ```
 
 For each destination, use an appropriate coastal sea coordinate rather than a
@@ -235,4 +170,5 @@ store screen evidence only with rights to retain/share it.
 В карточке выводится разбивка синтетической полной стоимости: отель,
 перелёты туда/обратно и трансферы в обе стороны. Сумма компонентов должна
 совпадать с ценой поездки; реального бронирования и подтверждения цен нет.
-Сезонность описывает среднемесячные нормы, а не прогноз на дату поездки.
+
+**Ссылка на скринкаст:** ДОБАВИТЬ
