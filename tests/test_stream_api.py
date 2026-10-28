@@ -18,7 +18,9 @@ def test_stream_progress_and_result():
         result=TestClient(app).post("/api/chat/stream", json={"session_id":str(uuid4()),"message":"Сочи"})
     assert result.status_code == 200
     assert result.headers["content-type"].startswith("text/event-stream")
+    assert result.headers["x-request-id"]
     assert "event: progress" in result.text
+    assert '"request_id"' in result.text
     assert "event: result" in result.text
     assert '"status": "ready"' in result.text
 

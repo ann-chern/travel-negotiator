@@ -20,6 +20,7 @@ from app.agent.intent_rules import explicit_destination, trip_interval, shift_da
 from app.schemas.request import RequestPatch, SetOperation
 from app.schemas.request import TripRequest
 from app.services.negotiation import NegotiatedSearch, search_with_plan_changes
+from app.observability import event as audit_event
 
 
 logger = logging.getLogger(__name__)
@@ -326,21 +327,35 @@ class GraphTravelAgent:
         The Pydantic State model rehydrates this dict into TripRequest on input.
         This prevents LangGraph from deserializing arbitrary application classes.
         """
+        before = self._state(state)
+        audit_event("agent.node.started", node="understand", version=before.version)
         update = self._understand(state)
         request = update.get("request")
         if isinstance(request, TripRequest):
             update = {**update, "request": request.model_dump(mode="json")}
+        audit_event("agent.message.interpreted", node="understand",
+                    resulting_stage=update.get("stage", before.stage),
+                    request_before=before.request,
+                    request_after=update.get("request", before.request),
+                    flags=update.get("flags", before.flags),
+                    version=update.get("version", before.version))
         return update
 
     def _route(self, state: Any) -> dict[str, Any]:
         s = self._state(state)
         if s.stage in {"error", "other", "cart_review", "confirming", "cancelled", "compromise_declined", "compromise_stale"}:
+            audit_event("agent.route.decided", decision="end", stage=s.stage)
             return {}
         decision = decide_next(s.request)
         if decision.kind == DecisionKind.CATALOG_GAP:
+            audit_event("agent.route.decided", decision="unsupported", stage=s.stage)
             return {"stage": "unsupported", "response": unsupported_destination_message(s.request),
                     "options": [], "compromises": []}
         plan = clarification_plan(s.request)
+        audit_event("agent.route.decided", decision=decision.kind.value,
+                    next_node="clarify" if decision.kind == DecisionKind.CLARIFY else "search",
+                    missing=[{"code": item.code, "label": item.missing_label,
+                              "reason": item.reason} for item in plan])
         return {"stage": "needs_input" if decision.kind == DecisionKind.CLARIFY else "searching",
                 "missing": [item.missing_label for item in plan]}
 
@@ -410,6 +425,7 @@ class GraphTravelAgent:
         s = self._state(state)
         focus = select_clarification(s.request)
         if focus is None:
+            audit_event("agent.clarification.failed", reason="no_focus")
             return {"stage": "error", "response": "Не удалось определить уточнение."}
         fallback = focus.question
         prompt = {
@@ -423,22 +439,31 @@ class GraphTravelAgent:
                 "Только текст вопроса, без вступления и списка."
             ),
         }
+        used_fallback = False
         try:
             text = (fallback if s.request.date_window is not None else
                     self.writer.generate(task="clarification", payload=prompt).strip())
             # A verbose/malformed answer is less useful than a vetted question.
             if not text or len(text) > 240 or "\n" in text or "?" not in text:
                 text = fallback
-        except Exception:
+                used_fallback = True
+        except Exception as exc:
             text = fallback
+            used_fallback = True
+            audit_event("agent.clarification.generator_failed", error_type=type(exc).__name__)
+        audit_event("agent.clarification.asked", focus={"code": focus.code,
+                    "missing_label": focus.missing_label, "reason": focus.reason},
+                    question=text, used_fallback=used_fallback)
         return {"stage": "needs_input", "response": text,
                 "pending_question": text}
 
     def _search(self, state: Any) -> dict[str, Any]:
         s = self._state(state)
+        audit_event("agent.node.started", node="search", request=s.request, flags=s.flags)
         try:
             res = self.search(s.request, **s.flags)
-        except Exception:
+        except Exception as exc:
+            audit_event("agent.search.failed", error_type=type(exc).__name__)
             return {"stage": "catalog_error", "options": [], "compromises": [], "compromise_request_version": None,
                     "reasons": ["Каталог предложений временно недоступен. Попробуй ещё раз."],
                     "response": "Каталог предложений временно недоступен. Попробуй ещё раз."}
@@ -448,6 +473,11 @@ class GraphTravelAgent:
             filtered = [o for o in res.options if destination_matches(s.request.destination, o.get('destination'))]
             status = res.status if filtered or res.status != 'ready' else 'no_match'
             reasons = res.reasons if filtered or res.status != 'ready' else ['Нет предложений для выбранного направления. Другие направления не подставляются автоматически.']
+            audit_event("agent.search.completed", status=status,
+                        received_options=len(res.options), accepted_options=len(filtered),
+                        rejected_by_destination=len(res.options) - len(filtered),
+                        option_ids=[item.get("id") for item in filtered], reasons=reasons,
+                        compromises_count=len(res.compromises) if status == "negotiating" else 0)
             return {"stage": status, "options": filtered, "compromises": res.compromises if status == 'negotiating' else [],
                     "reasons": reasons,
                     "compromise_request_version": s.version if res.compromises else None}
@@ -486,18 +516,24 @@ class GraphTravelAgent:
                 "В каждом варианте есть departure_date; обязательно укажи дату вылета при сравнении разных дат. "
                 "Если meal_plan не null, тип питания подтверждён данными демо-каталога; если null — неизвестен. "
                 "Не утверждай наличие характеристик, которых нет в options, и не обещай реальное бронирование."}).strip()
-        except Exception:
+        except Exception as exc:
             text = fallback
+            audit_event("agent.recommendation.generator_failed", error_type=type(exc).__name__)
         if s.request.date_window is not None and s.request.departure_date is None:
             dates = [o.get("departure_date") for o in s.options if o.get("departure_date")]
             if dates:
                 dates_text = ", ".join(f"{i + 1}: {day}" for i, day in enumerate(dates))
                 return {"response": (f"Даты вылета для предложенных вариантов ({dates_text}). "
                         + (text or fallback) + " Цены и наличие синтетические.")}
-        return {"response": text or fallback}
+        response = text or fallback
+        audit_event("agent.recommendation.completed", option_ids=[o.get("id") for o in s.options],
+                    response=response)
+        return {"response": response}
 
     def _negotiate(self, state: Any) -> dict[str, Any]:
         s = self._state(state)
+        audit_event("agent.negotiation.started", stage=s.stage, reasons=s.reasons,
+                    compromises=s.compromises)
         fallback = "; ".join(s.reasons) or "Нет подтверждённых подходящих вариантов."
         if s.stage == "catalog_error":
             return {"response": fallback}  # Never ask an LLM to fabricate unavailable offers.
@@ -523,7 +559,10 @@ class GraphTravelAgent:
         if s.compromises:
             actions = " Для принятия напиши «принимаю компромисс 1» (или другой номер); для отказа — «отклоняю компромиссы»."
             text = (text or fallback) + actions
-        return {"response": text or fallback}
+        response = text or fallback
+        audit_event("agent.negotiation.completed", response=response,
+                    requires_user_confirmation=bool(s.compromises))
+        return {"response": response}
 
     def handle(self, thread_id: str, message: str) -> GraphReply:
         if not thread_id.strip():
@@ -566,6 +605,8 @@ class GraphTravelAgent:
             for update in self.graph.stream({"user_message": message}, config=config, stream_mode="updates"):
                 for name in update:
                     if name in labels:
+                        audit_event("agent.node.completed", node=name,
+                                    update=list(update[name]) if isinstance(update[name], dict) else str(type(update[name]).__name__))
                         yield (name, labels[name])
             state = self._state(self.graph.get_state(config).values)
             yield ("done", GraphReply(state.stage, state.response, state.version, state.request,

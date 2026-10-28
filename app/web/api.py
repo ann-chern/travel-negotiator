@@ -7,14 +7,15 @@ import sys
 from functools import lru_cache
 from pathlib import Path
 from threading import RLock
-from uuid import UUID
+from uuid import UUID, uuid4
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Response
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from app.web.presentation import STAGES, commands_for_status, option_view
+from app.observability import event as audit_event, turn_context, user_message_value
 
 STATIC = Path(__file__).resolve().parent / "static"
 app = FastAPI(title="Travel Negotiator", version="0.1.0", docs_url=None, redoc_url=None)
@@ -86,11 +87,18 @@ def _validated_message(payload: ChatInput) -> str:
 
 
 @app.post("/api/chat")
-def chat(payload: ChatInput):
+def chat(payload: ChatInput, response: Response):
     message = _validated_message(payload)
+    request_id = str(uuid4())
+    response.headers["X-Request-ID"] = request_id
     try:
-        with _agent_lock:
-            reply = get_agent().handle(str(payload.session_id), message)
+        with turn_context(request_id, str(payload.session_id)):
+            audit_event("chat.received", transport="http", message=user_message_value(message))
+            with _agent_lock:
+                reply = get_agent().handle(str(payload.session_id), message)
+            audit_event("chat.completed", status=reply.status, version=reply.version,
+                        response=reply.message, options_count=len(reply.options),
+                        compromises_count=len(reply.compromises))
     except Exception:
         logging.getLogger(__name__).warning("Chat request failed: %s", type(sys.exc_info()[1]).__name__)
         raise HTTPException(503, "Не удалось обработать запрос. Попробуйте позже.") from None
@@ -104,25 +112,37 @@ def _sse(event: str, value: dict) -> str:
 @app.post("/api/chat/stream")
 def stream_chat(payload: ChatInput):
     message = _validated_message(payload)
+    request_id = str(uuid4())
 
     def events():
         # Run the same graph once; progress events report completed graph nodes,
         # not fabricated LLM tokens or unvalidated recommendations.
-        yield _sse("progress", {"stage": "start", "message": "Обрабатываю запрос…"})
-        try:
-            with _agent_lock:
-                agent = get_agent()
-                for update in agent.stream_updates(str(payload.session_id), message):
-                    if update[0] == "done":
-                        yield _sse("result", _serialize_reply(update[1]))
-                    else:
-                        yield _sse("progress", {"stage": update[0], "message": update[1]})
-        except Exception:
-            logging.getLogger(__name__).warning("Streaming chat request failed: %s", type(sys.exc_info()[1]).__name__)
-            yield _sse("error", {"message": "Не удалось обработать запрос. Попробуйте позже."})
+        with turn_context(request_id, str(payload.session_id)):
+            audit_event("chat.received", transport="sse", message=user_message_value(message))
+            yield _sse("progress", {"stage": "start", "message": "Обрабатываю запрос…",
+                                    "request_id": request_id})
+            try:
+                with _agent_lock:
+                    agent = get_agent()
+                    for update in agent.stream_updates(str(payload.session_id), message):
+                        if update[0] == "done":
+                            audit_event("chat.completed", status=update[1].status,
+                                        version=update[1].version,
+                                        response=update[1].message,
+                                        options_count=len(update[1].options),
+                                        compromises_count=len(update[1].compromises))
+                            yield _sse("result", _serialize_reply(update[1]))
+                        else:
+                            yield _sse("progress", {"stage": update[0], "message": update[1]})
+            except Exception:
+                logging.getLogger(__name__).warning("Streaming chat request failed: %s", type(sys.exc_info()[1]).__name__)
+                audit_event("chat.failed", level=logging.ERROR,
+                            error_type=type(sys.exc_info()[1]).__name__)
+                yield _sse("error", {"message": "Не удалось обработать запрос. Попробуйте позже."})
 
     return StreamingResponse(events(), media_type="text/event-stream", headers={
-        "Cache-Control": "no-cache, no-transform", "X-Accel-Buffering": "no"})
+        "Cache-Control": "no-cache, no-transform", "X-Accel-Buffering": "no",
+        "X-Request-ID": request_id})
 
 
 @app.middleware("http")

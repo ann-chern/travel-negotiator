@@ -1,7 +1,10 @@
 """Specialized prompting through the same model and API key as request parsing."""
 import json
 import os
+import time
 from typing import Any
+
+from app.observability import event as audit_event
 
 
 PROMPTS = {
@@ -41,8 +44,11 @@ class YandexTextGenerator:
             {"role": "system", "content": PROMPTS[task]},
             {"role": "user", "content": json.dumps(task_payload, ensure_ascii=False, default=str)},
         ]
+        audit_event("llm.generate.started", task=task, provider="yandex", model=self.model,
+                    temperature=0.2, payload=task_payload)
         # One bounded retry for a completion cut by max_tokens.
         for token_limit in (650, 1300):
+            started = time.monotonic()
             response = self.client.chat.completions.create(
                 model=self.model, messages=messages, temperature=0.2,
                 max_tokens=token_limit,
@@ -57,5 +63,12 @@ class YandexTextGenerator:
             content = choice.message.content
             if not content or not content.strip():
                 raise ValueError("Empty model response")
-            return content.strip()
+            result = content.strip()
+            usage = getattr(response, "usage", None)
+            audit_event("llm.generate.completed", task=task, output=result,
+                        finish_reason=choice.finish_reason, max_tokens=token_limit,
+                        elapsed_s=round(time.monotonic() - started, 3),
+                        tokens_in=getattr(usage, "prompt_tokens", None),
+                        tokens_out=getattr(usage, "completion_tokens", None))
+            return result
         raise ValueError("Model output truncated twice (finish_reason=length)")

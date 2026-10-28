@@ -13,6 +13,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
 from app.agent.llm_provider import ParsedTurn, TurnOperation
+from app.observability import event as audit_event
 
 
 class CompactTurn(BaseModel):
@@ -84,6 +85,9 @@ class CompactYandexTurnParser:
         self.last_diagnostic: dict = {}
 
     def parse(self, message: str, current_state: dict) -> ParsedTurn:
+        audit_event("llm.parse.started", provider="yandex", model=self.model,
+                    temperature=0, max_tokens=self.max_tokens,
+                    current_state=current_state)
         messages = [
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": json.dumps({"today": date.today().isoformat(),
@@ -100,6 +104,7 @@ class CompactYandexTurnParser:
             except Exception as exc:
                 self.last_diagnostic = {"attempt": attempt + 1, "error_type": type(exc).__name__,
                                         "elapsed_s": round(time.monotonic() - started, 3)}
+                audit_event("llm.parse.failed", **self.last_diagnostic)
                 raise  # Timeout/auth/network: no implicit costly repeat
             choice = response.choices[0] if response.choices else None
             finish = getattr(choice, "finish_reason", None)
@@ -111,9 +116,13 @@ class CompactYandexTurnParser:
             try:
                 if not content or finish == "length":
                     raise ValueError("Empty or truncated compact response")
-                return CompactTurn.model_validate_json(content).as_parsed_turn()
+                parsed = CompactTurn.model_validate_json(content).as_parsed_turn()
+                audit_event("llm.parse.completed", interpretation=parsed,
+                            **self.last_diagnostic)
+                return parsed
             except (ValidationError, ValueError):
                 self.last_diagnostic["error_type"] = "CompactValidationError"
+                audit_event("llm.parse.invalid", **self.last_diagnostic)
                 if attempt or not self.retry_invalid:
                     raise ValueError("Compact model response did not match validated operations contract") from None
                 messages.append({"role": "user", "content":
