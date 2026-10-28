@@ -17,6 +17,11 @@ from app.schemas.request import TripRequest
 from app.services.validator import validate_trip
 from app.services.optimizer import search_and_negotiate
 from app.services.negotiation import search_with_plan_changes
+from app.services.seasonality import SeasonalityProvider, OpenMeteoSeasonalityProvider
+import os
+
+def _seasonality():
+    return OpenMeteoSeasonalityProvider(allow_legacy_fallback=True) if os.environ.get("TN_SEASONALITY_PROVIDER") == "openmeteo" else SeasonalityProvider()
 
 
 def _parse_request(request_json: dict) -> TripRequest:
@@ -32,9 +37,10 @@ def _summary(trip, validated) -> OfferSummary:
     return OfferSummary(
         offer_id=trip.id, destination_id=trip.destination_id,
         hotel_name=trip.hotel.name,
-        departure_date=trip.hotel_offer.check_in.isoformat(),
+        departure_date=trip.outbound.departure_at.date().isoformat(),
         nights=(trip.hotel_offer.check_out - trip.hotel_offer.check_in).days,
         price_rub=str(validated.total_price.amount),
+        price_breakdown_rub={key: str(money.amount) for key, money in validated.breakdown.items()},
         availability="available", provenance="synthetic",
         observed_at=trip.hotel_offer.provenance.observed_at.isoformat(),
         is_bookable=False,
@@ -55,6 +61,176 @@ def _is_allowed_offer(request: TripRequest, offer_id: str) -> bool:
     return result.status == "ready" and any(row.trip.id == offer_id for row in result.ranked)
 
 
+def _diverse_offers(offers: list[OfferSummary], limit: int, *, across_destinations: bool) -> list[OfferSummary]:
+    """For inspiration, prioritize destination coverage; never bypass validation."""
+    if not across_destinations:
+        return offers[:limit]
+    distinct: list[OfferSummary] = []
+    seen: set[str] = set()
+    for offer in offers:
+        if offer.destination_id not in seen:
+            distinct.append(offer)
+            seen.add(offer.destination_id)
+            if len(distinct) == limit:
+                return distinct
+    used = {o.offer_id for o in distinct}
+    distinct.extend(o for o in offers if o.offer_id not in used and len(distinct) < limit)
+    return distinct
+
+
+def _portfolio(request: TripRequest, offers: list[OfferSummary], limit: int,
+               *, flexible_dates: bool = False) -> list[OfferSummary]:
+    """Choose distinct, *validated* offers after scoring, not merely cheapest rows.
+
+    For an open destination prefer distinct cities. For a fixed destination offer
+    a low-cost, a comfortable and a faster trip when feasible. For flexible dates,
+    avoid three copies of the same trip on adjacent dates when alternatives are
+    available. This function never changes prices or relaxes hard constraints.
+    """
+    if not offers:
+        return []
+    ranked = _rank_for_user(request, offers)
+    chosen: list[OfferSummary] = []
+    used: set[str] = set()
+
+    def pick(label: str, candidates: list[OfferSummary]) -> None:
+        for item in candidates:
+            if item.offer_id in used:
+                continue
+            chosen.append(item.model_copy(update={
+                "match_reasons": [label, *item.match_reasons]
+            }))
+            used.add(item.offer_id)
+            return
+
+    if request.destination is None:
+        cities: set[str] = set()
+        for candidate in ranked:
+            if candidate.destination_id in cities:
+                continue
+            cities.add(candidate.destination_id)
+            pick("Вариант другого направления", [candidate])
+            if len(chosen) >= limit:
+                break
+    else:
+        pick("Самый доступный по цене", sorted(ranked, key=lambda o: (float(o.price_rub), -(o.match_score or 0), o.offer_id)))
+        if len(chosen) < limit:
+            pick("Повышенный комфорт", sorted(ranked, key=lambda o: (-(o.hotel_stars or 0),
+                0 if o.meal_plan in ("breakfast", "half_board", "all_inclusive") else 1,
+                -(o.match_score or 0), float(o.price_rub), o.offer_id)))
+        if len(chosen) < limit:
+            pick("Меньше пересадок", sorted(ranked, key=lambda o: (
+                (o.outbound_stops or 0)+(o.inbound_stops or 0),
+                -(o.match_score or 0), float(o.price_rub), o.offer_id)))
+
+    while len(chosen) < min(limit, len(ranked)):
+        def novelty(candidate: OfferSummary) -> tuple:
+            if not chosen:
+                return (0, 0, 0, 0)
+            date_distance = min(abs((__import__('datetime').date.fromisoformat(candidate.departure_date) -
+                         __import__('datetime').date.fromisoformat(o.departure_date)).days) for o in chosen)
+            new_destination = int(all(o.destination_id != candidate.destination_id for o in chosen))
+            new_hotel = int(all(o.hotel_name != candidate.hotel_name for o in chosen))
+            new_flight = int(all((o.outbound_stops, o.inbound_stops) !=
+                    (candidate.outbound_stops, candidate.inbound_stops) for o in chosen))
+            return (new_destination, min(date_distance, 7) if flexible_dates else 0,
+                    new_hotel + new_flight, candidate.match_score or 0)
+        options = [o for o in ranked if o.offer_id not in used]
+        if not options:
+            break
+        best = max(options, key=lambda o: (novelty(o), -float(o.price_rub), o.offer_id))
+        pick("Альтернативный вариант", [best])
+    # Portfolio labels describe the reason for inclusion, not its presentation rank.
+    # The UI must show the strongest preference fit first, then lower cost.
+    return sorted(chosen[:limit], key=lambda o: (
+        -(o.match_score if o.match_score is not None else -1),
+        float(o.price_rub), o.departure_date, o.offer_id))
+
+
+def _preference_sort_key(request: TripRequest, offer: OfferSummary) -> tuple:
+    """Prefer matching destination tags, then price; these are not weather facts."""
+    from app.data.catalog import active_cities
+    tags = next((city.tags for city in active_cities() if city.id == offer.destination_id), frozenset())
+    missed = sum(1 for preference in request.preferences
+                 if preference.field == 'destination.tags'
+                 and preference.desired_value not in tags)
+    return (missed, float(offer.price_rub), offer.departure_date, offer.offer_id)
+
+
+def _assess_offer(request: TripRequest, offer: OfferSummary) -> OfferSummary:
+    """Transparent preference-fit score, NOT quality, weather or booking probability.
+
+    All scores operate only on fields verified in the synthetic catalog. Unknown
+    seasonal conditions are disclosed rather than inferred from destination tags.
+    """
+    from app.data.catalog import active_cities
+    tags = next((city.tags for city in active_cities() if city.id == offer.destination_id), frozenset())
+    score = 65
+    reasons = ["Соответствует обязательным ограничениям поиска"]
+    caveats = []
+    for pref in request.preferences:
+        if pref.field != "destination.tags":
+            continue
+        expected = pref.desired_value
+        if isinstance(expected, str):
+            if expected in ("beach", "sea", "warm"):
+                # Destination type alone is insufficient to claim seasonal swim suitability.
+                if expected in tags or "beach" in tags or "sea" in tags:
+                    score += 14
+                    reasons.append("Морское направление по профилю каталога (не гарантия купания)")
+                else:
+                    score -= 30
+                    caveats.append("Не является профильным пляжным направлением")
+            elif expected in tags:
+                score += 20
+                reasons.append("Направление соответствует заявленному типу отдыха (тег каталога)")
+            else:
+                score -= 20
+                caveats.append("Тип отдыха не подтверждён тегами направления")
+    if offer.outbound_stops == 0 and offer.inbound_stops == 0:
+        score += 8
+        reasons.append("Прямой перелёт в обе стороны")
+    elif (offer.outbound_stops or 0) > 0 or (offer.inbound_stops or 0) > 0:
+        caveats.append("Перелёт с пересадкой")
+    if offer.meal_plan in ("breakfast", "half_board", "all_inclusive"):
+        score += 5
+        reasons.append("В тариф включено питание")
+    elif offer.meal_plan == "none":
+        caveats.append("Питание не включено")
+    if request.budget is not None and request.budget.currency == "RUB":
+        budget = request.budget.amount
+        if request.budget.scope in (None, "whole_trip") and budget > 0:
+            ratio = float(offer.price_rub) / float(budget)
+            if ratio <= .75:
+                score += 5
+                reasons.append("Есть запас относительно бюджета")
+    if any(p.field == "destination.tags" and p.desired_value in ("beach", "sea", "warm") for p in request.preferences):
+        from datetime import date
+        seasonal = _seasonality().assess_beach(offer.destination_id, date.fromisoformat(offer.departure_date))
+        if seasonal.status == "favorable":
+            score += 12
+            reasons.append("Климатические нормы благоприятны: " + seasonal.summary)
+        elif seasonal.status == "marginal":
+            score -= 10
+            caveats.append("Пограничный сезон: " + seasonal.summary)
+        elif seasonal.status == "unfavorable":
+            score -= 50
+            caveats.append("Пляжный отдых не рекомендуется по климатическим нормам: " + seasonal.summary)
+        else:
+            score -= 15
+            caveats.append(seasonal.summary)
+    caveats.append("Цены и доступность синтетические; реальное бронирование не предусмотрено")
+    return offer.model_copy(update={"match_score": max(0, min(100, score)),
+                                    "match_reasons": reasons, "match_caveats": caveats})
+
+
+def _rank_for_user(request: TripRequest, offers: list[OfferSummary]) -> list[OfferSummary]:
+    """Prefer suitability before price; deterministic tie-breaking."""
+    scored = [_assess_offer(request, offer) for offer in offers]
+    return sorted(scored, key=lambda o: (-int(o.match_score or 0), float(o.price_rub),
+                                          o.departure_date, o.offer_id))
+
+
 class CatalogService:
     def search_offers(self, request_json: dict, limit: int = 10) -> SearchOffersResponse:
         if not 1 <= limit <= 100:
@@ -70,15 +246,23 @@ class CatalogService:
         if missing:
             return SearchOffersResponse(status="needs_input", message="Missing: " + ", ".join(missing))
         # Do not bypass hard constraints: the optimizer is the source of truth.
-        result = search_and_negotiate(request, limit=limit)
+        result = search_and_negotiate(request, limit=100)
         if result.status != "ready":
             return SearchOffersResponse(
                 status=result.status if result.status in {"unsupported", "needs_input", "no_match"} else "unsupported",
                 message="; ".join(result.reasons) or "Нет предложений, удовлетворяющих всем условиям",
             )
-        offers = [_summary(item.trip, item.validation) for item in result.ranked]
+        offers = _portfolio(request, [_summary(item.trip, item.validation) for item in result.ranked], limit)
+        beach = any(p.field == "destination.tags" and p.desired_value in ("beach", "sea", "warm") for p in request.preferences)
+        from datetime import date
+        season_warning = ""
+        if beach and offers and not any(
+            _seasonality().assess_beach(o.destination_id, date.fromisoformat(o.departure_date)).status == "favorable"
+            for o in offers
+        ):
+            season_warning = " ВНИМАНИЕ: ни один показанный вариант не подтверждён как подходящий для купания по среднемесячным климатическим данным; предложите смену месяца или направления."
         return SearchOffersResponse(status="ok", offers=offers,
-            message="DEMO ONLY: fictional prices and availability; not live inventory.")
+            message="DEMO ONLY: fictional prices and availability; not live inventory." + season_warning)
 
     def search_date_window(self, request_json: dict, limit: int = 3) -> SearchOffersResponse:
         """Search EVERY day in a bounded window; one MCP call, read-only.
@@ -105,18 +289,63 @@ class CatalogService:
         had_no_match = False
         for offset in range(count):
             concrete = request.model_copy(update={"departure_date": first + timedelta(days=offset), "date_window": None})
-            result = self.search_offers(concrete.model_dump(mode="json"), limit=limit)
+            # Keep all eligible destinations before preference ranking; the old
+            # per-day top-40 price cutoff silently removed long-haul offers.
+            result = self.search_offers(concrete.model_dump(mode="json"), limit=100)
             if result.status == "ok":
                 found.extend(result.offers)
             elif result.status == "no_match":
                 had_no_match = True
         if not found:
-            return SearchOffersResponse(status="no_match" if had_no_match else "unsupported",
-                message="В демо-каталоге нет подходящих предложений на даты выбранного периода")
+            message = "В демо-каталоге нет подходящих предложений на даты выбранного периода"
+            if had_no_match and request.budget is not None:
+                # Diagnostic only. The original hard budget stays untouched.
+                # Check every date, not just the first, for a meaningful threshold.
+                relaxed = request.model_copy(update={"budget": None})
+                cheapest = None
+                cheapest_day = None
+                for offset in range(count):
+                    trial = relaxed.model_copy(update={
+                        "departure_date": first + timedelta(days=offset), "date_window": None})
+                    from app.services.optimizer import search_and_negotiate
+                    eligible = search_and_negotiate(trial, limit=200)
+                    if eligible.status != "ready":
+                        continue
+                    for row in eligible.ranked:
+                        amount = row.validation.total_price.amount
+                        if cheapest is None or amount < cheapest:
+                            cheapest, cheapest_day = amount, trial.departure_date
+                if cheapest is not None:
+                    deficit = max(0, cheapest - request.budget.amount)
+                    message += (f". Минимальная цена при сохранении остальных обязательных требований: "
+                                f"{cheapest:,.0f} ₽ (вылет {cheapest_day.isoformat()}); "
+                                f"бюджет {request.budget.amount:,.0f} ₽, не хватает {deficit:,.0f} ₽. "
+                                "Можно согласовать увеличение бюджета, сокращение длительности "
+                                "или другой период; ограничения не изменены")
+            return SearchOffersResponse(status="no_match" if had_no_match else "unsupported", message=message)
         # Deterministic ranking across dates; stable tie-breakers.
-        found.sort(key=lambda o: (float(o.price_rub), o.departure_date, o.offer_id))
-        return SearchOffersResponse(status="ok", offers=found[:limit],
-            message=f"Проверено {count} дат включительно; цены и наличие демонстрационные")
+        found = _rank_for_user(request, found)
+        # For a clearly stated travel goal, never pad the UI with 0%-fit
+        # alternatives solely to fill three cards. Returning fewer is valid.
+        if request.preferences:
+            relevant = [offer for offer in found if (offer.match_score or 0) > 0]
+            if not relevant:
+                return SearchOffersResponse(status="no_match", offers=[], message=(
+                    "Найдены поездки, но ни одна не соответствует заявленной цели отдыха. "
+                    "Можно изменить период, направление или ослабить предпочтение; "
+                    "условия не изменены."))
+            found = relevant
+        selected = _portfolio(request, found, limit, flexible_dates=True)
+        from datetime import date
+        beach = any(p.field == "destination.tags" and p.desired_value in ("beach", "sea", "warm") for p in request.preferences)
+        season_warning = ""
+        if beach and selected and not any(
+            _seasonality().assess_beach(o.destination_id, date.fromisoformat(o.departure_date)).status == "favorable"
+            for o in selected
+        ):
+            season_warning = "; ни один показанный вариант не подтверждён как подходящий для купания по климатическим нормам"
+        return SearchOffersResponse(status="ok", offers=selected,
+            message=f"Проверено {count} дат включительно; цены и наличие демонстрационные" + season_warning)
 
     def negotiate_offers(self, request_json: dict, *, allow_nights: bool = False,
                          allow_date_shift: bool = False, allow_budget_increase: bool = False,

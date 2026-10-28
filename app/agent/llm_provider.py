@@ -43,6 +43,7 @@ class ParsedTurn(BaseModel):
     adults: int | None = Field(default=None, ge=1, le=30)
     budget_rub: int | None = Field(default=None, ge=1)
     budget_hard: bool | None = None
+    travel_goal: Literal["beach", "culture", "nature", "city", "family", "relax"] | None = None
     # Null = unchanged. Explicit deletion uses clear_fields/clear_constraints.
     children_ages: list[int] | None = None
     children_ages_unknown: int | None = Field(default=None, ge=0, le=30)
@@ -68,6 +69,8 @@ INSTRUCTIONS = """Ты — парсер изменений запроса тур
 Предпочитай один формат: operations или legacy, никогда не смешивай их.
 Для operations используй op=set/remove, field, value (для remove null).
 Учитывай явно заданные требования к детям, питомцам, пересадкам и питанию.
+Если пользователь назвал цель отдыха, верни travel_goal: beach (пляж, купание), culture, nature, city, family или relax.
+Цель поездки — предпочтение, не жёсткая фильтрация. Если цель не ясна, верни null.
 """
 
 

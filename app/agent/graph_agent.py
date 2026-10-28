@@ -12,10 +12,11 @@ from typing import Any, Protocol
 
 from pydantic import BaseModel, Field
 
-from app.agent.llm_provider import ParsedTurn, TurnParser
+from app.agent.llm_provider import ParsedTurn, TurnParser, TurnOperation
 from app.agent.orchestrator import _apply_turn
 from app.agent.clarification import clarification_plan, select_clarification
-from app.agent.date_intent import recognize_window
+from app.agent.intent_pipeline import interpret_calendar, apply_calendar, apply_travel_goal, DateKind, decide_next, DecisionKind
+from app.agent.intent_rules import explicit_destination, trip_interval, shift_dates, unsupported_destination_message, reinforce_explicit_facts, destination_matches, reinforce_trip_duration
 from app.schemas.request import RequestPatch, SetOperation
 from app.schemas.request import TripRequest
 from app.services.negotiation import NegotiatedSearch, search_with_plan_changes
@@ -215,19 +216,72 @@ class GraphTravelAgent:
             return {'stage': 'cart_review', 'selected_offer_id': choice['id'],
                     'selected_request_version': s.version, 'selected_price_rub': None,
                     'booking_reference': None}
-        # Recognize explicit date ranges separately: they are NOT exact departure dates.
-        window = recognize_window(msg)
-        if window is not None:
-            new_data = s.request.model_dump(mode="python")
-            new_data["departure_date"] = None
-            new_data["return_date"] = None
-            new_data["date_window"] = window
-            candidate = TripRequest.model_validate(new_data)
+        # A short numeric reply answers the active clarification, not a new intent.
+        if (s.stage == "needs_input" and s.request.travelers.adults is None
+                and s.pending_question and "взросл" in s.pending_question.lower()
+                and re.fullmatch(r"[1-9]|[12][0-9]|30", normalized)):
+            turn = ParsedTurn(intent="plan", adults=int(normalized))
+            candidate = _apply_turn(s.request, turn)
+            return {"request": candidate.model_dump(mode="json"), "version": s.version + 1,
+                    "stage": "parsed", "pending_question": None, "options": [], "compromises": [],
+                    "selected_offer_id": None, "selected_request_version": None,
+                    "selected_price_rub": None, "booking_reference": None}
+        # A relative date shift is a deterministic edit of the existing request.
+        shifted = shift_dates(msg, s.request)
+        if shifted is not None:
+            return {"request": shifted.model_dump(mode="json"), "version": s.version + 1,
+                    "stage": "parsed", "pending_question": None, "options": [], "compromises": [],
+                    "selected_offer_id": None, "selected_request_version": None,
+                    "selected_price_rub": None, "booking_reference": None}
+        # Calendar is interpreted once, then merged with the facts of this turn.
+        # A flexible month is already an answer: never ask for an exact day.
+        calendar = interpret_calendar(msg, pending_question=s.pending_question)
+        if calendar.kind != DateKind.UNCHANGED:
+            # Explicit facts are collected independently of model response; for
+            # unhandled semantics the normal LLM path below remains available.
+            base = reinforce_trip_duration(msg, reinforce_explicit_facts(msg, s.request))
+            # The parser may recognize soft trip goals and unfamiliar wording.
+            # Explicit calendar semantics always win over a guessed exact date.
+            try:
+                turn = self.parser.parse(msg, base.model_dump(mode="json"))
+                if turn.intent != "other":
+                    if turn.operations:
+                        turn = turn.model_copy(update={"operations": [op for op in turn.operations
+                                  if op.field != "departure_date" and (calendar.kind != DateKind.EXACT_STAY or op.field != "nights")]})
+                    else:
+                        turn = turn.model_copy(update={"departure_date": None,
+                        "nights": None if calendar.kind == DateKind.EXACT_STAY else turn.nights})
+                    base = reinforce_trip_duration(msg, reinforce_explicit_facts(
+                        msg, _apply_turn(base, turn)))
+                    base = apply_travel_goal(base, turn.travel_goal)
+            except Exception:
+                logger.info("Semantic extraction unavailable; retaining explicit facts")
+            candidate = apply_calendar(base, calendar)
             return {"request": candidate.model_dump(mode="json"), "version": s.version + 1,
                     "stage": "parsed", "options": [], "compromises": [], "pending_question": None,
                     "selected_offer_id": None, "selected_request_version": None,
                     "selected_price_rub": None, "compromise_request_version": None,
                     "booking_reference": None, "reasons": [], "error": None}
+        # Fully explicit initial requests should not depend on LLM availability.
+        if s.version == 0 and s.request == TripRequest():
+            extracted = reinforce_trip_duration(msg, reinforce_explicit_facts(msg, s.request))
+            if (extracted.origin is not None and extracted.travelers.adults is not None
+                    and extracted.nights is not None):
+                # Preserve open-ended intentions even when the essential fields
+                # are already filled by explicit extraction. The LLM is optional:
+                # failed extraction must not discard facts the user provided.
+                try:
+                    semantic = self.parser.parse(msg, extracted.model_dump(mode='json'))
+                    if semantic.intent != 'other':
+                        extracted = reinforce_trip_duration(msg, reinforce_explicit_facts(
+                            msg, _apply_turn(extracted, semantic)))
+                        extracted = apply_travel_goal(extracted, semantic.travel_goal)
+                except Exception:
+                    logger.info('Optional semantic extraction failed; explicit facts preserved')
+                return {'request': extracted.model_dump(mode='json'), 'version': s.version + 1,
+                        'stage': 'parsed', 'pending_question': None, 'options': [], 'compromises': [],
+                        'selected_offer_id': None, 'selected_request_version': None,
+                        'selected_price_rub': None, 'booking_reference': None}
         # Fully unambiguous removal of an existing constraint is a data operation,
         # not an open-ended language-generation task. All other text goes to LLM.
         turn = _simple_constraint_revision(msg)
@@ -244,7 +298,19 @@ class GraphTravelAgent:
             base = s.request.model_dump(mode="python")
             base["date_window"] = None
             base_request = TripRequest.model_validate(base)
-        candidate = _apply_turn(base_request, turn)
+        # High-confidence explicit destination takes precedence over a missed LLM field.
+        named_destination = explicit_destination(msg)
+        if named_destination:
+            if turn.operations:
+                ops = [op for op in turn.operations if op.field != "destination"]
+                ops.append(TurnOperation(
+                    op="set", field="destination", value=named_destination))
+                turn = turn.model_copy(update={"operations": ops})
+            else:
+                turn = turn.model_copy(update={"destination": named_destination})
+        candidate = apply_travel_goal(
+            reinforce_trip_duration(msg, reinforce_explicit_facts(msg, _apply_turn(base_request, turn))),
+            turn.travel_goal)
         flags = dict(s.flags)
         for name in ("allow_nights", "allow_date_shift", "allow_budget_increase"):
             flags[name] = flags.get(name, False) or getattr(turn, name)
@@ -270,8 +336,12 @@ class GraphTravelAgent:
         s = self._state(state)
         if s.stage in {"error", "other", "cart_review", "confirming", "cancelled", "compromise_declined", "compromise_stale"}:
             return {}
+        decision = decide_next(s.request)
+        if decision.kind == DecisionKind.CATALOG_GAP:
+            return {"stage": "unsupported", "response": unsupported_destination_message(s.request),
+                    "options": [], "compromises": []}
         plan = clarification_plan(s.request)
-        return {"stage": "needs_input" if plan else "searching",
+        return {"stage": "needs_input" if decision.kind == DecisionKind.CLARIFY else "searching",
                 "missing": [item.missing_label for item in plan]}
 
     @classmethod
@@ -279,12 +349,12 @@ class GraphTravelAgent:
         stage = cls._state(state).stage
         if stage == "cart_review": return "cart"
         if stage == "confirming": return "booking"
-        return "end" if stage in ("error", "other", "cancelled", "compromise_declined", "compromise_stale") else "clarify" if stage == "needs_input" else "search"
+        return "end" if stage in ("error", "other", "cancelled", "compromise_declined", "compromise_stale", "unsupported") else "clarify" if stage == "needs_input" else "search"
 
     @staticmethod
     def _selected_option(options: list[dict[str, Any]], message: str) -> dict[str, Any] | None:
         # Intentionally narrow MVP grammar; do not interpret arbitrary prose as consent.
-        m = re.fullmatch(r'(?:беру|выбираю|хочу|покажи|оформи)\s+(первый|второй|третий|[1-3])\s*(?:вариант)?[.!\s]*', message.lower().strip())
+        m = re.fullmatch(r'(?:беру|выбираю|выбрать|хочу|покажи|оформи)\s+(?:вариант\s+)?(первый|второй|третий|[1-3])\s*(?:вариант)?[.!\s]*', message.lower().strip())
         if m:
             index = {'первый': 0, 'второй': 1, 'третий': 2, '1': 0, '2': 1, '3': 2}[m.group(1)]
             return options[index] if index < len(options) else None
@@ -375,8 +445,11 @@ class GraphTravelAgent:
         # MCP adapter returns validated public tool data, not internal TripCandidate objects.
         from app.agent.mcp_search import McpSearchResult
         if isinstance(res, McpSearchResult):
-            return {"stage": res.status, "options": res.options, "compromises": res.compromises,
-                    "reasons": res.reasons,
+            filtered = [o for o in res.options if destination_matches(s.request.destination, o.get('destination'))]
+            status = res.status if filtered or res.status != 'ready' else 'no_match'
+            reasons = res.reasons if filtered or res.status != 'ready' else ['Нет предложений для выбранного направления. Другие направления не подставляются автоматически.']
+            return {"stage": status, "options": filtered, "compromises": res.compromises if status == 'negotiating' else [],
+                    "reasons": reasons,
                     "compromise_request_version": s.version if res.compromises else None}
         if res.original.status == "ready":
             options = [
@@ -385,7 +458,10 @@ class GraphTravelAgent:
                  "score": item.score, "tradeoffs": list(item.tradeoffs), "synthetic": True}
                 for item in res.original.ranked
             ]
-            return {"stage": "ready", "options": options, "compromises": [], "compromise_request_version": None, "reasons": []}
+            options = [o for o in options if destination_matches(s.request.destination, o.get('destination'))]
+            return {"stage": "ready" if options else "no_match", "options": options, "compromises": [],
+                    "compromise_request_version": None,
+                    "reasons": [] if options else ['Нет предложений для выбранного направления.']}
         proposals = [
             {"kind": alt.kind, "description": alt.description,
              "price_rub": str(alt.best_trip.validation.total_price.amount),
@@ -428,6 +504,9 @@ class GraphTravelAgent:
         if s.compromises:
             fallback += " Доступны предложения изменить условия, но они требуют твоего согласия."
             fallback += " Для принятия напиши «принимаю компромисс 1» (или номер другого варианта); для отказа — «отклоняю компромиссы»."
+        # A computed catalog price gap must not be replaced with vague LLM advice.
+        if s.stage == "no_match" and any("Минимальная цена" in r for r in s.reasons):
+            return {"response": fallback}
         if s.stage == "unsupported":
             return {"response": ("В демонстрационном каталоге нет покрытия для текущих условий. "
                     + ("Причина: " + "; ".join(s.reasons) + ". " if s.reasons else "")
@@ -468,3 +547,32 @@ class GraphTravelAgent:
         s = self._state(output)
         return GraphReply(s.stage, s.response, s.version, s.request,
                           tuple(s.options), tuple(s.compromises))
+
+    def stream_updates(self, thread_id: str, message: str):
+        """Yield completed LangGraph node progress and a single verified final reply.
+
+        Unlike token-streaming this reports actual graph execution stages; structured
+        offers are returned only after the graph finishes all validations.
+        """
+        if not thread_id.strip():
+            raise ValueError("thread_id cannot be empty")
+        config = {"configurable": {"thread_id": thread_id}}
+        labels = {"understand": "Проверяю требования…", "route": "Определяю следующий шаг…",
+                  "clarify": "Готовлю уточнение…", "search": "Проверяю предложения…",
+                  "recommend": "Формирую рекомендацию…", "negotiate": "Проверяю альтернативы…",
+                  "cart_review": "Проверяю корзину…",
+                  "booking_confirmation": "Подтверждаю демо-бронирование…"}
+        try:
+            for update in self.graph.stream({"user_message": message}, config=config, stream_mode="updates"):
+                for name in update:
+                    if name in labels:
+                        yield (name, labels[name])
+            state = self._state(self.graph.get_state(config).values)
+            yield ("done", GraphReply(state.stage, state.response, state.version, state.request,
+                                      tuple(state.options), tuple(state.compromises)))
+        except Exception as exc:
+            logger.warning("Graph streaming turn failed: %s", type(exc).__name__)
+            prior = self.graph.get_state(config).values
+            state = self._state(prior)
+            yield ("done", GraphReply("error", "Не удалось обработать сообщение. Прежние условия сохранены.",
+                                      state.version, state.request, (), ()))

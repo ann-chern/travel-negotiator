@@ -19,6 +19,7 @@ class CompactTurn(BaseModel):
     model_config = ConfigDict(extra="forbid")
     intent: Literal["plan", "revise", "other"] = "plan"
     operations: list[TurnOperation] = Field(default_factory=list)
+    travel_goal: Literal["beach", "culture", "nature", "city", "family", "relax"] | None = None
     unsupported_requirements: list[str] = Field(default_factory=list)
     allow_nights: bool = False
     allow_date_shift: bool = False
@@ -36,7 +37,7 @@ class CompactTurn(BaseModel):
 
 
 SYSTEM_PROMPT = """Ты извлекаешь ИЗМЕНЕНИЯ требований к поездке. Ответь ТОЛЬКО компактным JSON объектом.
-Ключи: intent (plan/revise/other), operations (массив), unsupported_requirements (массив строк), allow_nights, allow_date_shift, allow_budget_increase (булевы значения).
+Ключи: intent (plan/revise/other), operations (массив), unsupported_requirements (массив строк), allow_nights, allow_date_shift, allow_budget_increase (булевы значения), travel_goal (beach/culture/nature/city/family/relax/null).
 Операция: {"op":"set" или "remove", "field":"имя поля", "value":значение или null}.
 Разрешены поля: origin, destination, departure_date, nights, adults, budget_rub, children_ages, pets, transport.stops, hotel.meal_plan.
 Примеры:
@@ -50,6 +51,7 @@ SYSTEM_PROMPT = """Ты извлекаешь ИЗМЕНЕНИЯ требован
 Дата departure_date: ISO YYYY-MM-DD, значение строкой. Не выдумывай отсутствующие факты.
 Не дублируй текущее состояние в operations. Сохранить прежнее значение = НЕ возвращать операцию.
 Если данных не хватает, оставь поле неизменным; не придумывай дату или город.
+Цель отдыха извлекай по смыслу, например желание купаться => travel_goal=beach. Не пытайся приравнять любой город у моря к пляжному отдыху в любой сезон.
 Диапазон («с 14 по 30 ноября») и приблизительная дата («во второй половине ноября») НЕ являются точной датой: не создавай операцию departure_date. Их обрабатывает отдельный модуль уточнений.
 Если пользователь сообщает точный день и месяц, выбирай год из текущего состояния и текущего календарного года, не меняя день.
 Не пиши рассуждения и markdown. Все неуказанные массивы пустые, флаги false.

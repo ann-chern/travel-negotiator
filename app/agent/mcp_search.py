@@ -89,8 +89,10 @@ class McpCatalogSearch:
         if payload.status == "ok":
             options = [{"id": o.offer_id, "destination": o.destination_id,
                         "hotel": o.hotel_name, "price_rub": o.price_rub,
+                        "price_breakdown_rub": o.price_breakdown_rub,
                         "departure_date": o.departure_date, "nights": o.nights,
-                        "score": None, "tradeoffs": [], "synthetic": o.provenance == "synthetic",
+                        "score": o.match_score, "tradeoffs": o.match_caveats,
+                        "match_reasons": o.match_reasons, "synthetic": o.provenance == "synthetic",
                         "availability": o.availability, "is_bookable": o.is_bookable,
                         "hotel_stars": o.hotel_stars, "meal_plan": o.meal_plan,
                         "hotel_pets_allowed": o.hotel_pets_allowed,

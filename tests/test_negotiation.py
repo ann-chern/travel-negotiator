@@ -11,7 +11,7 @@ from app.schemas.request import Budget, TripRequest, Travelers
 
 def req():
     return TripRequest(origin="Москва", departure_date=date(2026, 11, 10), nights=10,
-        travelers=Travelers(adults=2), budget=Budget(amount=Decimal("48000"), currency="RUB", scope="whole_trip"))
+        travelers=Travelers(adults=2), budget=Budget(amount=Decimal("70000"), currency="RUB", scope="whole_trip"))
 
 
 def test_proposals_are_verified_and_do_not_mutate_user_request():

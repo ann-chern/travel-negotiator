@@ -24,7 +24,17 @@ def money_rub(value: Any) -> str:
         return "Цена неизвестна"
 
 
-def option_view(row: dict[str, Any]) -> dict[str, str]:
+def _format_breakdown(parts: Any) -> str:
+    if not isinstance(parts, dict) or not parts:
+        return ""
+    keys = (("hotel", "Отель"), ("outbound", "Перелёт туда"),
+            ("inbound", "Перелёт обратно"),
+            ("arrival_transfer", "Трансфер до отеля"),
+            ("departure_transfer", "Обратный трансфер"))
+    return " · ".join(f"{label}: {money_rub(parts[key])}" for key, label in keys if key in parts)
+
+
+def option_view(row: dict[str, Any]) -> dict[str, Any]:
     stops_out, stops_back = row.get("outbound_stops"), row.get("inbound_stops")
     if stops_out == 0 and stops_back == 0:
         flight = "Прямой перелёт туда и обратно"
@@ -38,15 +48,20 @@ def option_view(row: dict[str, Any]) -> dict[str, str]:
     pets = row.get("hotel_pets_allowed")
     pets_text = "С животными можно" if pets is True else ("Животные не допускаются" if pets is False else "Животные: нет данных")
     return {
+        "id": str(row.get("id") or ""),
         "hotel": str(row.get("hotel") or row.get("hotel_name") or "Предложение"),
         "destination": str(row.get("destination") or row.get("destination_id") or "Направление не указано"),
         "price": money_rub(row.get("price_rub")),
+        "price_breakdown": _format_breakdown(row.get("price_breakdown_rub")),
         "date": str(row.get("departure_date") or "Дата не указана"),
         "duration": f"{row['nights']} ночей" if isinstance(row.get("nights"), int) else "Продолжительность не указана",
         "stars": f"{stars}★" if isinstance(stars, int) else "Категория не указана",
         "meal": meal,
         "flight": flight,
         "pets": pets_text,
+        "match_score": row.get("score") if isinstance(row.get("score"), int) else None,
+        "match_reasons": list(row.get("match_reasons") or []),
+        "match_caveats": list(row.get("tradeoffs") or []),
         "disclaimer": "Демо-предложение · цена и доступность синтетические · реальная бронь недоступна",
     }
 

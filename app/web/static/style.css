@@ -4,3 +4,14 @@
 .brand-icon{width:40px;height:40px;object-fit:contain;flex-shrink:0}
 .welcome-logo{width:220px;height:220px;object-fit:contain;display:block;margin:0 auto 14px}
 @media(max-width:850px){.brand-icon{width:36px;height:36px}.welcome-logo{width:150px;height:150px}}
+
+/* Three offers on one row where space allows; fall back responsively. */
+.agent-block{width:min(1100px,100%)}
+.result-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media(max-width:1050px){.result-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:650px){.result-grid{grid-template-columns:1fr}}
+
+/* Explainable match score: informational, not a hotel quality rating. */
+.match-score {font-weight:700; margin-top:8px; font-size:.88rem;}
+.match-reasons {font-size:.8rem; margin-top:5px; opacity:.9;}
+.match-caveats {font-size:.78rem; margin-top:5px; opacity:.78;}

@@ -1,0 +1,17 @@
+[
+  {
+    "source_url": "https://example.org/sample-offer",
+    "observed_at": "2026-08-15T10:00:00Z",
+    "destination_id": "antalya",
+    "hotel_name": "ILLUSTRATIVE RECORD - DO NOT IMPORT AS REAL DATA",
+    "check_in": "2026-09-01",
+    "check_out": "2026-09-08",
+    "price_rub": "50000",
+    "adults": 2,
+    "source_offer_id": "FORMAT-EXAMPLE-ONLY",
+    "evidence_file": null,
+    "includes_transport": false,
+    "includes_transfer": false,
+    "notes": "Schema example only, not a real observed offer"
+  }
+]

@@ -53,3 +53,12 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+
+@server.tool()
+def search_historical_snapshots(destination_id: str | None = None, limit: int = 20) -> dict:
+    """Read sourced historical price observations, NOT live inventory or bookable trips."""
+    from app.data.snapshot_catalog import SnapshotCatalogProvider
+    rows = SnapshotCatalogProvider().search(destination_id=destination_id)
+    return {"mode": "historical_non_bookable", "total": len(rows),
+            "offers": [r.model_dump(mode="json") for r in rows[:max(1, min(limit, 100))]]}

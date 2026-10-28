@@ -28,6 +28,10 @@ class OfferSummary(Contract):
     adults: int | None = None
     children_ages: list[int] = Field(default_factory=list)
     pets_count: int | None = None
+    price_breakdown_rub: dict[str, str] = Field(default_factory=dict)
+    match_score: int | None = Field(default=None, ge=0, le=100)
+    match_reasons: list[str] = Field(default_factory=list)
+    match_caveats: list[str] = Field(default_factory=list)
 
 
 class SearchOffersResponse(Contract):
