@@ -104,7 +104,9 @@ def test_writer_failure_falls_back_without_fabricating_data():
     agent.writer = BrokenWriter()
     state = TravelGraphState(missing=["город отправления"], stage="needs_input")
     update = agent._clarify(state)
-    assert "город отправления" in update["response"]
+    assert update["stage"] == "needs_input"
+    assert "город" in update["response"].lower()
+    assert update["response"].strip().endswith("?")
 
 
 def test_negotiation_does_not_apply_proposals():

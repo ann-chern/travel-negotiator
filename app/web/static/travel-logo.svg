@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 620" role="img" aria-labelledby="title desc">
+<title id="title">Travel Negotiator — самолёт и поезд между двумя точками</title>
+<desc id="desc">Бирюзовая точка отправления, синяя точка прибытия, две изогнутые линии, самолёт и скоростной поезд. Фон и отверстия прозрачны.</desc>
+<defs>
+ <linearGradient id="air" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#079aff"/><stop offset="1" stop-color="#145cff"/></linearGradient>
+ <linearGradient id="rail" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#06d9b9"/><stop offset="1" stop-color="#02aab4"/></linearGradient>
+ <linearGradient id="flightRoute" x1="0" y1="1" x2="1" y2="0"><stop stop-color="#087cff"/><stop offset="1" stop-color="#03bff5"/></linearGradient>
+ <linearGradient id="trainRoute" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#0ae1b2"/><stop offset="1" stop-color="#00c1d6"/></linearGradient>
+ <linearGradient id="origin" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#09d8b3"/><stop offset="1" stop-color="#008b90"/></linearGradient>
+ <linearGradient id="destination" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#0865ff"/><stop offset="1" stop-color="#0655df"/></linearGradient>
+ <mask id="pinOriginHole" maskUnits="userSpaceOnUse" x="0" y="0" width="1000" height="620"><rect width="1000" height="620" fill="white"/><circle cx="179" cy="402" r="29" fill="black"/></mask>
+ <mask id="pinDestinationHole" maskUnits="userSpaceOnUse" x="0" y="0" width="1000" height="620"><rect width="1000" height="620" fill="white"/><circle cx="794" cy="133" r="28" fill="black"/></mask>
+ <mask id="trainWindows" maskUnits="userSpaceOnUse" x="0" y="0" width="1000" height="620"><rect width="1000" height="620" fill="white"/>
+  <path d="M535 363 L578 360 Q582 360 582 365 L582 387 L544 387 Z" fill="black"/>
+  <path d="M591 359 L630 357 L633 387 L592 387 Z" fill="black"/>
+  <path d="M643 357 L674 356 L680 387 L642 387 Z" fill="black"/>
+  <path d="M697 356 Q734 352 751 370 Q758 379 757 388 L712 388 Q704 381 697 356 Z" fill="black"/>
+ </mask>
+</defs>
+<!-- Route strokes are intentionally discontinuous where the plane and train appear, so the silhouettes stay unobstructed. -->
+<g fill="none" stroke-linecap="round" stroke-linejoin="round">
+ <path d="M203 326 C275 251 374 222 479 217" stroke="white" stroke-width="23"/>
+ <path d="M203 326 C275 251 374 222 479 217" stroke="url(#flightRoute)" stroke-width="18"/>
+ <path d="M236 366 C325 303 398 331 478 382" stroke="white" stroke-width="23"/>
+ <path d="M236 366 C325 303 398 331 478 382" stroke="url(#trainRoute)" stroke-width="18"/>
+ <path d="M484 401 C594 481 733 469 796 367 C814 339 830 303 836 274" stroke="white" stroke-width="24"/>
+ <path d="M484 401 C594 481 733 469 796 367 C814 339 830 303 836 274" stroke="url(#trainRoute)" stroke-width="18"/>
+</g>
+<!-- Departure pin: hole truly transparent (not painted white). -->
+<path d="M179 322 C132 322 98 358 98 404 C98 458 150 513 179 544 C208 513 260 458 260 404 C260 358 226 322 179 322 Z" fill="url(#origin)" stroke="white" stroke-width="3.5" stroke-linejoin="round" mask="url(#pinOriginHole)"/>
+<circle cx="179" cy="402" r="29" fill="none" stroke="white" stroke-width="3.5"/>
+<!-- Arrival pin -->
+<path d="M794 43 C748 43 713 77 713 126 C713 181 766 233 794 265 C822 233 875 181 875 126 C875 77 840 43 794 43 Z" fill="url(#destination)" stroke="white" stroke-width="3.5" stroke-linejoin="round" mask="url(#pinDestinationHole)"/>
+<circle cx="794" cy="133" r="28" fill="none" stroke="white" stroke-width="3.5"/>
+<!-- Aircraft: one continuous silhouette, subtle gradient, thin white keyline. -->
+<path d="M567 231 L529 191 Q526 187 533 184 L549 179 Q553 178 557 182 L610 208 L672 187 Q698 179 713 179 Q729 180 730 189 Q731 199 714 210 L655 237 L613 315 Q608 324 600 326 L584 329 Q577 329 580 318 L598 250 L554 268 L538 292 Q535 297 529 298 L517 301 Q511 301 513 294 L521 263 L493 249 L476 259 Q471 262 467 257 L462 249 L491 230 L515 228 L504 202 Q500 193 508 191 L519 189 Z" fill="url(#air)" stroke="white" stroke-width="3.5" stroke-linejoin="round"/>
+<!-- Bullet train, with fully transparent window cutouts. -->
+<g mask="url(#trainWindows)">
+ <path d="M488 354 C564 346 654 338 718 340 C743 340 768 348 784 366 C798 382 806 401 804 407 Q800 420 777 423 C691 430 608 417 562 397 Q526 382 488 354 Z" fill="url(#rail)" stroke="white" stroke-width="3.5" stroke-linejoin="round"/>
+</g>
+<!-- Crisp white window outlines; centers are actual alpha holes. -->
+<g fill="none" stroke="white" stroke-width="2.4" opacity=".92" stroke-linejoin="round">
+ <path d="M535 363 L578 360 Q582 360 582 365 L582 387 L544 387 Z"/>
+ <path d="M591 359 L630 357 L633 387 L592 387 Z"/>
+ <path d="M643 357 L674 356 L680 387 L642 387 Z"/>
+ <path d="M697 356 Q734 352 751 370 Q758 379 757 388 L712 388 Q704 381 697 356 Z"/>
+</g>
+</svg>

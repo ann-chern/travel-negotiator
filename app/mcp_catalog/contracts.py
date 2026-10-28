@@ -19,11 +19,20 @@ class OfferSummary(Contract):
     provenance: Literal["synthetic"] = "synthetic"
     observed_at: str
     is_bookable: bool = False
+    # Explicit, evidenced attributes; None means unknown, not false.
+    hotel_stars: int | None = None
+    meal_plan: Literal["none", "breakfast", "half_board", "all_inclusive"] | None = None
+    hotel_pets_allowed: bool | None = None
+    outbound_stops: int | None = Field(default=None, ge=0)
+    inbound_stops: int | None = Field(default=None, ge=0)
+    adults: int | None = None
+    children_ages: list[int] = Field(default_factory=list)
+    pets_count: int | None = None
 
 
 class SearchOffersResponse(Contract):
     schema_version: Literal["1.0"] = "1.0"
-    status: Literal["ok", "unsupported", "needs_input"]
+    status: Literal["ok", "unsupported", "needs_input", "no_match"]
     offers: list[OfferSummary] = Field(default_factory=list)
     message: str = ""
 
@@ -55,3 +64,19 @@ class BookingResponse(Contract):
     message: str
     real_booking_created: bool = False
     payment_collected: bool = False
+
+
+class NegotiationProposal(Contract):
+    kind: Literal["budget", "nights", "date"]
+    description: str
+    proposed_request: dict
+    offer: OfferSummary
+    penalty: float = Field(ge=0)
+    requires_confirmation: Literal[True] = True
+
+
+class NegotiateOffersResponse(Contract):
+    schema_version: Literal["1.0"] = "1.0"
+    status: Literal["ok", "no_match", "needs_input", "unsupported"]
+    proposals: list[NegotiationProposal] = Field(default_factory=list)
+    message: str = ""
