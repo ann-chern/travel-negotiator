@@ -40,14 +40,13 @@ docker compose down
 - `YANDEX_FOLDER_ID` — идентификатор каталога Yandex Cloud.
 - `YANDEX_MODEL` — модель; по умолчанию `deepseek-v4.1-flash`.
 - `YANDEX_BASE_URL` — адрес OpenAI-совместимого API Yandex Cloud.
-- `TN_EXTENDED_DEMO=1` — включает расширенный каталог из 15 направлений.
 - `TN_SEASONALITY_PROVIDER=openmeteo` — использует локальный климатический
   кэш Open-Meteo.
 - `TN_LOG_USER_MESSAGES=1` — включает текст пользователя в диагностических
   логах. В Compose по умолчанию установлено `0`, поэтому текст скрыт.
 
-Compose уже включает расширенный каталог и провайдер Open-Meteo. Переменные
-явно передаются дочерним MCP-процессам.
+Основной каталог всегда содержит 15 направлений. Compose включает провайдер
+Open-Meteo, а переменные явно передаются дочерним MCP-процессам.
 
 ## Как устроена обработка запроса
 
@@ -72,7 +71,9 @@ Compose уже включает расширенный каталог и про�
 - `app/services/` — валидация, ранжирование и сезонность;
 - `app/web/` — FastAPI, SSE и статический интерфейс.
 
-Базовые адреса, таймауты и лимиты находятся в `configs/settings.toml`.
+Справочники каталога находятся в `app/data/fixtures/*.json` и валидируются
+Pydantic-моделями из `app/data/loader.py`. Базовые адреса, таймауты и лимиты
+находятся в `configs/settings.toml`.
 Секреты и настройки окружения из `.env` имеют приоритет над TOML.
 
 Гибкий период ограничен 31 днем. Поиск проверяет каждую дату внутри периода.
@@ -99,11 +100,11 @@ API возвращает `X-Request-ID`. Структурированные JSON
 не подтверждает существование такого рейса в реальном расписании.
 
 `OpenMeteoSeasonalityProvider` читает локальный файл
-`app/data/openmeteo_normals.json` и не обращается к сети во время чата.
+`app/data/fixtures/climate_normals.json` и не обращается к сети во время чата.
 Обновить климатический кэш можно командой:
 
 ```powershell
-uv run python -m app.commands.refresh_climate_cache --start-year 2022 --end-year 2025 --include-extended
+uv run python -m app.commands.refresh_climate_cache --start-year 2022 --end-year 2025
 ```
 
 Климатические значения являются историческими средними, а не прогнозом.

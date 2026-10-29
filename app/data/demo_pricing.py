@@ -7,74 +7,14 @@ levels), NOT scraped prices. Keep provenance synthetic in every downstream offer
 from __future__ import annotations
 
 import hashlib
-from dataclasses import dataclass
 from datetime import date
 from decimal import ROUND_HALF_UP, Decimal
 
+from app.data.loader import DestinationPriceBand, load_catalog_fixtures
 
-@dataclass(frozen=True)
-class DestinationPriceBand:
-    hotel_nightly_3star: int  # two people, base room
-    flight_oneway_per_person: int
-    transfer_oneway_group: int
-    # Multipliers for each calendar month, Jan-Dec; broad demonstration seasonality.
-    monthly_factors: tuple[float, ...]
-
-
-_DEFAULT_MONTHS = (1.0, 0.98, 1.05, 1.12, 1.20, 1.26, 1.35, 1.32, 1.15, 1.05, 1.0, 1.23)
-_TROPICAL_MONTHS = (
-    1.27,
-    1.20,
-    1.14,
-    1.04,
-    0.94,
-    0.86,
-    0.84,
-    0.88,
-    0.94,
-    1.06,
-    1.20,
-    1.32,
-)
-_MEDITERRANEAN_MONTHS = (
-    0.78,
-    0.76,
-    0.87,
-    1.03,
-    1.19,
-    1.35,
-    1.55,
-    1.52,
-    1.28,
-    1.04,
-    0.82,
-    0.88,
-)
-
-# Explicit per-destination floor-like reference values, not fabricated scraped snapshots.
-BANDS: dict[str, DestinationPriceBand] = {
-    "antalya": DestinationPriceBand(5200, 19000, 2500, _MEDITERRANEAN_MONTHS),
-    "istanbul": DestinationPriceBand(5600, 17000, 2900, _DEFAULT_MONTHS),
-    "sochi": DestinationPriceBand(4500, 11500, 1900, _MEDITERRANEAN_MONTHS),
-    "dubai": DestinationPriceBand(10500, 29000, 5000, _TROPICAL_MONTHS),
-    "phuket": DestinationPriceBand(6000, 52000, 5300, _TROPICAL_MONTHS),
-    "bali": DestinationPriceBand(6500, 63000, 5400, _TROPICAL_MONTHS),
-    "maldives": DestinationPriceBand(18000, 62000, 11000, _TROPICAL_MONTHS),
-    "sharm": DestinationPriceBand(5400, 26000, 3800, _TROPICAL_MONTHS),
-    "hurghada": DestinationPriceBand(5200, 24000, 3500, _TROPICAL_MONTHS),
-    "tbilisi": DestinationPriceBand(4900, 17000, 2600, _DEFAULT_MONTHS),
-    "yerevan": DestinationPriceBand(4500, 16000, 2100, _DEFAULT_MONTHS),
-    "bangkok": DestinationPriceBand(5100, 47000, 4400, _TROPICAL_MONTHS),
-    "goa": DestinationPriceBand(4700, 41000, 3300, _TROPICAL_MONTHS),
-    "colombo": DestinationPriceBand(5000, 42000, 3600, _TROPICAL_MONTHS),
-    "kazan": DestinationPriceBand(4100, 9500, 1900, _DEFAULT_MONTHS),
-}
-
-HOTEL_LEVEL = {
-    "budget": Decimal("1"),
-    "family": Decimal("1.65"),
-    "premium": Decimal("3.3"),
-}
+_FIXTURES = load_catalog_fixtures()
+BANDS: dict[str, DestinationPriceBand] = _FIXTURES.price_bands
+HOTEL_LEVEL: dict[str, Decimal] = _FIXTURES.hotel_levels
 
 
 def _jitter(identifier: str, day: date, *, variation: int = 9) -> Decimal:
@@ -127,3 +67,7 @@ def transfer_oneway(city: str, day: date) -> int:
             Decimal(band.transfer_oneway_group) * _jitter(f"{city}:transfer", day, variation=5)
         ),
     )
+
+
+def pet_flight_surcharge(city: str) -> int:
+    return BANDS[city].pet_flight_surcharge

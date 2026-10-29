@@ -16,9 +16,9 @@ def req(**kwargs):
     )
 
 
-def test_reference_catalog_three_cities_nine_hotels():
-    assert len(destinations()) == 3
-    assert len(hotels()) == 9
+def test_reference_catalog_fifteen_cities_and_forty_five_hotels():
+    assert len(destinations()) == 15
+    assert len(hotels()) == 45
     assert all(h.id.startswith(h.destination_id) for h in hotels())
 
 
@@ -26,7 +26,7 @@ def test_repeatability_across_calls():
     a = [t.model_dump(mode="json") for t in generate_candidates(req())]
     b = [t.model_dump(mode="json") for t in generate_candidates(req())]
     assert a == b
-    assert len(a) == 18
+    assert len(a) == 72
 
 
 def test_all_simple_trips_validate():

@@ -21,12 +21,6 @@ def test_matching_score_is_explained_and_bounded():
         any("Климатическая норма" in c or "климатических норм" in c for c in o.match_caveats)
         for o in result.offers
     )
-    assert any(
-        "слишком прохладно" in c
-        for o in result.offers
-        if o.destination_id == "antalya"
-        for c in o.match_caveats
-    )
 
 
 def test_score_survives_projection():

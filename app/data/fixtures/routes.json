@@ -1,0 +1,19 @@
+{
+  "routes": [
+    {"destination_id": "antalya", "direct_available": true, "direct_hours": 5, "connecting_hours": 8},
+    {"destination_id": "istanbul", "direct_available": true, "direct_hours": 4, "connecting_hours": 7},
+    {"destination_id": "sochi", "direct_available": true, "direct_hours": 4, "connecting_hours": 7},
+    {"destination_id": "dubai", "direct_available": true, "direct_hours": 6, "connecting_hours": 10},
+    {"destination_id": "phuket", "direct_available": false, "direct_hours": 11, "connecting_hours": 16},
+    {"destination_id": "bali", "direct_available": false, "direct_hours": 14, "connecting_hours": 20},
+    {"destination_id": "maldives", "direct_available": false, "direct_hours": 10, "connecting_hours": 15, "transfer_minutes": 100, "transfer_multiplier": 2.8, "note": "Островной трансфер (демо), лодка/самолёт не подтверждены"},
+    {"destination_id": "sharm", "direct_available": true, "direct_hours": 6, "connecting_hours": 9},
+    {"destination_id": "hurghada", "direct_available": true, "direct_hours": 6, "connecting_hours": 9},
+    {"destination_id": "tbilisi", "direct_available": true, "direct_hours": 4, "connecting_hours": 7},
+    {"destination_id": "yerevan", "direct_available": true, "direct_hours": 4, "connecting_hours": 7},
+    {"destination_id": "bangkok", "direct_available": false, "direct_hours": 10, "connecting_hours": 15},
+    {"destination_id": "goa", "direct_available": false, "direct_hours": 9, "connecting_hours": 14},
+    {"destination_id": "colombo", "direct_available": false, "direct_hours": 9, "connecting_hours": 14},
+    {"destination_id": "kazan", "direct_available": true, "direct_hours": 2, "connecting_hours": 5}
+  ]
+}

@@ -17,7 +17,6 @@ text_max_retries = 1
 text_token_limits = [650, 1300]
 
 [catalog]
-extended_demo = false
 seasonality_provider = "legacy"
 mcp_module = "app.mcp_catalog.server"
 search_limit = 3

@@ -11,8 +11,7 @@ def test_word_numbers_and_flexible_duration_no_clarification():
     assert req.budget.amount == 30000
 
 
-def test_phuket_is_searchable_during_december(monkeypatch):
-    monkeypatch.setenv("TN_EXTENDED_DEMO", "1")
+def test_phuket_is_searchable_during_december():
     req = TripRequest.model_validate(
         {
             "origin": "Москва",
@@ -30,8 +29,7 @@ def test_phuket_is_searchable_during_december(monkeypatch):
     assert response.offers and all(o.destination_id == "phuket" for o in response.offers)
 
 
-def test_open_december_beach_search_excludes_zero_fit(monkeypatch):
-    monkeypatch.setenv("TN_EXTENDED_DEMO", "1")
+def test_open_december_beach_search_excludes_zero_fit():
     req = TripRequest.model_validate(
         {
             "origin": "Москва",

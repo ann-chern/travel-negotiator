@@ -1,0 +1,25 @@
+{
+  "monthly_factors": {
+    "default": [1.0, 0.98, 1.05, 1.12, 1.20, 1.26, 1.35, 1.32, 1.15, 1.05, 1.0, 1.23],
+    "tropical": [1.27, 1.20, 1.14, 1.04, 0.94, 0.86, 0.84, 0.88, 0.94, 1.06, 1.20, 1.32],
+    "mediterranean": [0.78, 0.76, 0.87, 1.03, 1.19, 1.35, 1.55, 1.52, 1.28, 1.04, 0.82, 0.88]
+  },
+  "hotel_levels": {"budget": 1.0, "family": 1.65, "premium": 3.3},
+  "destinations": [
+    {"destination_id": "antalya", "hotel_nightly_3star": 5200, "flight_oneway_per_person": 19000, "transfer_oneway_group": 2500, "pet_flight_surcharge": 15000, "seasonality": "mediterranean"},
+    {"destination_id": "istanbul", "hotel_nightly_3star": 5600, "flight_oneway_per_person": 17000, "transfer_oneway_group": 2900, "pet_flight_surcharge": 11500, "seasonality": "default"},
+    {"destination_id": "sochi", "hotel_nightly_3star": 4500, "flight_oneway_per_person": 11500, "transfer_oneway_group": 1900, "pet_flight_surcharge": 8500, "seasonality": "mediterranean"},
+    {"destination_id": "dubai", "hotel_nightly_3star": 10500, "flight_oneway_per_person": 29000, "transfer_oneway_group": 5000, "pet_flight_surcharge": 24000, "seasonality": "tropical"},
+    {"destination_id": "phuket", "hotel_nightly_3star": 6000, "flight_oneway_per_person": 52000, "transfer_oneway_group": 5300, "pet_flight_surcharge": 42000, "seasonality": "tropical"},
+    {"destination_id": "bali", "hotel_nightly_3star": 6500, "flight_oneway_per_person": 63000, "transfer_oneway_group": 5400, "pet_flight_surcharge": 46000, "seasonality": "tropical"},
+    {"destination_id": "maldives", "hotel_nightly_3star": 18000, "flight_oneway_per_person": 62000, "transfer_oneway_group": 11000, "pet_flight_surcharge": 49000, "seasonality": "tropical"},
+    {"destination_id": "sharm", "hotel_nightly_3star": 5400, "flight_oneway_per_person": 26000, "transfer_oneway_group": 3800, "pet_flight_surcharge": 20000, "seasonality": "tropical"},
+    {"destination_id": "hurghada", "hotel_nightly_3star": 5200, "flight_oneway_per_person": 24000, "transfer_oneway_group": 3500, "pet_flight_surcharge": 19000, "seasonality": "tropical"},
+    {"destination_id": "tbilisi", "hotel_nightly_3star": 4900, "flight_oneway_per_person": 17000, "transfer_oneway_group": 2600, "pet_flight_surcharge": 14500, "seasonality": "default"},
+    {"destination_id": "yerevan", "hotel_nightly_3star": 4500, "flight_oneway_per_person": 16000, "transfer_oneway_group": 2100, "pet_flight_surcharge": 13000, "seasonality": "default"},
+    {"destination_id": "bangkok", "hotel_nightly_3star": 5100, "flight_oneway_per_person": 47000, "transfer_oneway_group": 4400, "pet_flight_surcharge": 35000, "seasonality": "tropical"},
+    {"destination_id": "goa", "hotel_nightly_3star": 4700, "flight_oneway_per_person": 41000, "transfer_oneway_group": 3300, "pet_flight_surcharge": 28000, "seasonality": "tropical"},
+    {"destination_id": "colombo", "hotel_nightly_3star": 5000, "flight_oneway_per_person": 42000, "transfer_oneway_group": 3600, "pet_flight_surcharge": 31500, "seasonality": "tropical"},
+    {"destination_id": "kazan", "hotel_nightly_3star": 4100, "flight_oneway_per_person": 9500, "transfer_oneway_group": 1900, "pet_flight_surcharge": 7000, "seasonality": "default"}
+  ]
+}

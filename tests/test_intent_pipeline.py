@@ -126,15 +126,11 @@ def test_beach_goal_considers_seasonality_in_flexible_search():
     result = CatalogService().search_date_window(request.model_dump(mode="json"), limit=3)
     assert result.status == "ok"
     assert all((offer.match_score or 0) > 0 for offer in result.offers)
-    assert {offer.destination_id for offer in result.offers}.issubset(
-        {"antalya", "sochi", "istanbul"}
-    )
-    assert any(
-        "слишком прохладно" in c
-        for o in result.offers
-        if o.destination_id == "antalya"
-        for c in o.match_caveats
-    )
+    from app.data.catalog import active_cities
+
+    tags = {destination.id: destination.tags for destination in active_cities()}
+    assert all("beach" in tags[offer.destination_id] for offer in result.offers)
+    assert all(offer.match_caveats for offer in result.offers)
 
 
 class GoalParser:

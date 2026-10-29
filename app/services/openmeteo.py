@@ -17,7 +17,7 @@ from urllib.request import urlopen
 AIR_ENDPOINT = "https://archive-api.open-meteo.com/v1/archive"
 # Historical SST is retrieved from the reanalysis archive, not the marine forecast endpoint.
 MARINE_ENDPOINT = AIR_ENDPOINT
-DEFAULT_CACHE = Path(__file__).resolve().parents[1] / "data" / "openmeteo_normals.json"
+DEFAULT_CACHE = Path(__file__).resolve().parents[1] / "data" / "fixtures" / "climate_normals.json"
 
 
 def _get_json(endpoint: str, params: dict, *, opener=urlopen) -> dict:

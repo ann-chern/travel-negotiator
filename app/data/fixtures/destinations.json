@@ -1,0 +1,19 @@
+{
+  "destinations": [
+    {"id": "antalya", "name": "Анталья", "country": "TR", "latitude": 36.8969, "longitude": 30.7133, "timezone": "Europe/Istanbul", "airport": "AYT", "tags": ["beach", "family", "warm"]},
+    {"id": "istanbul", "name": "Стамбул", "country": "TR", "latitude": 41.0082, "longitude": 28.9784, "timezone": "Europe/Istanbul", "airport": "IST", "tags": ["city", "culture", "food"]},
+    {"id": "sochi", "name": "Сочи", "country": "RU", "latitude": 43.5855, "longitude": 39.7231, "timezone": "Europe/Moscow", "airport": "AER", "tags": ["nature", "family", "sea"]},
+    {"id": "dubai", "name": "Дубай", "country": "AE", "latitude": 25.2048, "longitude": 55.2708, "timezone": "Asia/Dubai", "airport": "DXB", "tags": ["beach", "city", "warm", "family"]},
+    {"id": "phuket", "name": "Пхукет", "country": "TH", "latitude": 7.8804, "longitude": 98.3923, "timezone": "Asia/Bangkok", "airport": "HKT", "tags": ["beach", "warm", "nature"]},
+    {"id": "bali", "name": "Бали", "country": "ID", "latitude": -8.4095, "longitude": 115.1889, "timezone": "Asia/Makassar", "airport": "DPS", "tags": ["beach", "warm", "nature"]},
+    {"id": "maldives", "name": "Мале", "country": "MV", "latitude": 4.1755, "longitude": 73.5093, "timezone": "Indian/Maldives", "airport": "MLE", "tags": ["beach", "warm", "family"]},
+    {"id": "sharm", "name": "Шарм-эль-Шейх", "country": "EG", "latitude": 27.9158, "longitude": 34.3299, "timezone": "Africa/Cairo", "airport": "SSH", "tags": ["beach", "warm", "family"]},
+    {"id": "hurghada", "name": "Хургада", "country": "EG", "latitude": 27.2579, "longitude": 33.8116, "timezone": "Africa/Cairo", "airport": "HRG", "tags": ["beach", "warm", "family"]},
+    {"id": "tbilisi", "name": "Тбилиси", "country": "GE", "latitude": 41.7151, "longitude": 44.8271, "timezone": "Asia/Tbilisi", "airport": "TBS", "tags": ["city", "culture", "food"]},
+    {"id": "yerevan", "name": "Ереван", "country": "AM", "latitude": 40.1792, "longitude": 44.4991, "timezone": "Asia/Yerevan", "airport": "EVN", "tags": ["city", "culture", "food"]},
+    {"id": "bangkok", "name": "Бангкок", "country": "TH", "latitude": 13.7563, "longitude": 100.5018, "timezone": "Asia/Bangkok", "airport": "BKK", "tags": ["city", "food", "culture", "warm"]},
+    {"id": "goa", "name": "Гоа", "country": "IN", "latitude": 15.2993, "longitude": 74.124, "timezone": "Asia/Kolkata", "airport": "GOI", "tags": ["beach", "warm", "nature"]},
+    {"id": "colombo", "name": "Коломбо", "country": "LK", "latitude": 6.9271, "longitude": 79.8612, "timezone": "Asia/Colombo", "airport": "CMB", "tags": ["beach", "city", "warm"]},
+    {"id": "kazan", "name": "Казань", "country": "RU", "latitude": 55.7879, "longitude": 49.1233, "timezone": "Europe/Moscow", "airport": "KZN", "tags": ["city", "culture", "food"]}
+  ]
+}

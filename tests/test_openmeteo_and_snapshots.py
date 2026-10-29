@@ -86,8 +86,5 @@ def test_snapshots_require_source_and_are_not_bookable(tmp_path):
         provider.import_file(path)
 
 
-def test_extended_demo_destinations_are_explicit_opt_in(monkeypatch):
-    monkeypatch.delenv("TN_EXTENDED_DEMO", raising=False)
-    assert len(active_cities()) == 3
-    monkeypatch.setenv("TN_EXTENDED_DEMO", "1")
-    assert len(active_cities()) >= 12
+def test_main_catalog_contains_all_destinations():
+    assert len(active_cities()) == 15

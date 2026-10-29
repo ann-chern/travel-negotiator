@@ -34,7 +34,6 @@ class YandexSettings(BaseModel):
 
 
 class CatalogSettings(BaseModel):
-    extended_demo: bool = Field(default=False)
     seasonality_provider: str = Field(default="legacy")
     mcp_module: str = Field(default="app.mcp_catalog.server")
     search_limit: int = Field(default=3, ge=1)
@@ -70,8 +69,6 @@ def load_settings(path: Path = SETTINGS_PATH) -> ApplicationSettings:
         yandex["model"] = environment["YANDEX_MODEL"]
         yandex["parser_model"] = environment["YANDEX_MODEL"]
     yandex["parser_format"] = environment.get("YANDEX_PARSER_FORMAT", yandex["parser_format"])
-    if "TN_EXTENDED_DEMO" in environment:
-        catalog["extended_demo"] = _as_bool(environment["TN_EXTENDED_DEMO"])
     catalog["seasonality_provider"] = environment.get(
         "TN_SEASONALITY_PROVIDER", catalog["seasonality_provider"]
     )

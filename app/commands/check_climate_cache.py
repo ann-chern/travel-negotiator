@@ -2,7 +2,7 @@
 
 import json
 
-from app.data.catalog import CITIES, EXTENDED_CITIES
+from app.data.catalog import active_cities
 from app.services.openmeteo import DEFAULT_CACHE
 
 
@@ -12,7 +12,7 @@ def main() -> None:
             f"Climate cache missing: {DEFAULT_CACHE}\nRun app.commands.refresh_climate_cache first."
         )
     records = json.loads(DEFAULT_CACHE.read_text(encoding="utf-8")).get("cities", {})
-    for city in CITIES + EXTENDED_CITIES:
+    for city in active_cities():
         row = records.get(city.id, {})
         months = row.get("months", {})
         complete_months = [

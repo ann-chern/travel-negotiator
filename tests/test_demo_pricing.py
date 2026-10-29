@@ -31,8 +31,7 @@ def test_prices_deterministic_but_vary_by_date():
     assert len({hotel_nightly("antalya", "premium", date(2027, 9, x)) for x in range(1, 8)}) > 1
 
 
-def test_end_to_end_catalog_keeps_synthetic_provenance(monkeypatch):
-    monkeypatch.setenv("TN_EXTENDED_DEMO", "1")
+def test_end_to_end_catalog_keeps_synthetic_provenance():
     r = TripRequest(
         origin="Москва",
         departure_date=date(2027, 9, 12),

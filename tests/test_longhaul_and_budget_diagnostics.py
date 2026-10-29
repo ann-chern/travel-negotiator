@@ -9,8 +9,7 @@ from app.schemas.request import Budget, DateWindow, Preference, Travelers, TripR
 from app.services.validator import validate_trip
 
 
-def test_phuket_finds_valid_overnight_arrival(monkeypatch):
-    monkeypatch.setenv("TN_EXTENDED_DEMO", "1")
+def test_phuket_finds_valid_overnight_arrival():
     request = TripRequest(
         origin="Москва",
         destination="Пхукет",
@@ -29,8 +28,7 @@ def test_phuket_finds_valid_overnight_arrival(monkeypatch):
     )
 
 
-def test_budget_gap_is_computed_without_mutating_budget(monkeypatch):
-    monkeypatch.setenv("TN_EXTENDED_DEMO", "1")
+def test_budget_gap_is_computed_without_mutating_budget():
     request = TripRequest(
         origin="Москва",
         nights=7,
@@ -49,8 +47,7 @@ def test_budget_gap_is_computed_without_mutating_budget(monkeypatch):
     assert request.model_dump(mode="json") == before
 
 
-def test_open_beach_request_does_not_rank_non_coastal_city_first(monkeypatch):
-    monkeypatch.setenv("TN_EXTENDED_DEMO", "1")
+def test_open_beach_request_does_not_rank_non_coastal_city_first():
     request = TripRequest(
         origin="Москва",
         nights=7,

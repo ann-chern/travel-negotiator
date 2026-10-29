@@ -53,11 +53,10 @@ def test_inspiration_across_destinations_from_window():
     )
     result = CatalogService().search_date_window(req.model_dump(mode="json"), limit=3)
     assert result.status == "ok"
-    assert {offer.destination_id for offer in result.offers} == {
-        "sochi",
-        "istanbul",
-        "antalya",
-    }
+    assert len({offer.destination_id for offer in result.offers}) == 3
+    assert [offer.match_score for offer in result.offers] == sorted(
+        [offer.match_score for offer in result.offers], reverse=True
+    )
     assert all(offer.departure_date.startswith("2026-11-") for offer in result.offers)
 
 

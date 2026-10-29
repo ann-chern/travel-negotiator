@@ -1,0 +1,7 @@
+{
+  "profiles": [
+    {"slug": "budget", "label": "Городской отель", "stars": 3, "kind": "city_hotel", "meal_plan": "none", "pets_allowed": false, "free_cancellation": true, "transfer_minutes": 35, "room_name": "Стандартный номер"},
+    {"slug": "family", "label": "Семейный отель", "stars": 4, "kind": "family_hotel", "meal_plan": "breakfast", "pets_allowed": true, "free_cancellation": true, "transfer_minutes": 50, "room_name": "Семейный номер"},
+    {"slug": "premium", "label": "Премиум-отель", "stars": 5, "kind": "premium_hotel", "meal_plan": "breakfast", "pets_allowed": null, "free_cancellation": false, "transfer_minutes": 65, "room_name": "Улучшенный номер"}
+  ]
+}

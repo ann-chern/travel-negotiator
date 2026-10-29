@@ -18,14 +18,12 @@ def request(destination):
     )
 
 
-def test_all_geographic_seeds_have_route_policies(monkeypatch):
-    monkeypatch.setenv("TN_EXTENDED_DEMO", "1")
+def test_all_geographic_seeds_have_route_policies():
     assert {c.id for c in active_cities()} == set(ROUTES)
     assert len({p.slug for p in HOTELS}) == len(HOTELS)
 
 
-def test_long_haul_not_falsely_advertised_as_nonstop(monkeypatch):
-    monkeypatch.setenv("TN_EXTENDED_DEMO", "1")
+def test_long_haul_not_falsely_advertised_as_nonstop():
     for city in ("bali", "phuket", "maldives", "bangkok", "goa", "colombo"):
         items = generate_candidates(request(city))
         assert items
@@ -38,8 +36,7 @@ def test_long_haul_not_falsely_advertised_as_nonstop(monkeypatch):
         )
 
 
-def test_island_transfer_longer_and_more_costly(monkeypatch):
-    monkeypatch.setenv("TN_EXTENDED_DEMO", "1")
+def test_island_transfer_longer_and_more_costly():
     maldives = generate_candidates(request("maldives"))[0]
     dubai = generate_candidates(request("dubai"))[0]
     assert (
@@ -56,8 +53,7 @@ def test_hotel_classes_have_distinct_room_names_and_meal_plans():
     assert all(t.hotel_offer.provenance.source_type.value == "synthetic" for t in trips)
 
 
-def test_repeatability_and_offer_ids_across_profiles(monkeypatch):
-    monkeypatch.setenv("TN_EXTENDED_DEMO", "1")
+def test_repeatability_and_offer_ids_across_profiles():
     r = request("maldives")
     first = generate_candidates(r)
     second = generate_candidates(r)

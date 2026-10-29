@@ -3,7 +3,7 @@
 import argparse
 from pathlib import Path
 
-from app.data.catalog import CITIES, EXTENDED_CITIES
+from app.data.catalog import active_cities
 from app.services.openmeteo import refresh_city, write_cache
 
 
@@ -11,23 +11,17 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--start-year", type=int, default=2022)
     parser.add_argument("--end-year", type=int, default=2025)
-    parser.add_argument(
-        "--include-extended",
-        action="store_true",
-        help="Also download all 12 extended destinations",
-    )
     parser.add_argument("--out", default=None, help="Optional cache output path")
     args = parser.parse_args()
 
     records = []
-    cities = CITIES + (EXTENDED_CITIES if args.include_extended else ())
-    for city in cities:
+    for city in active_cities():
         try:
             records.append(
                 refresh_city(
                     city.id,
-                    city.lat,
-                    city.lon,
+                    city.latitude,
+                    city.longitude,
                     start_year=args.start_year,
                     end_year=args.end_year,
                 )

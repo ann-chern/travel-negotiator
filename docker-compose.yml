@@ -8,7 +8,6 @@ services:
         required: false
     environment:
       PYTHONUNBUFFERED: "1"
-      TN_EXTENDED_DEMO: "1"
       TN_SEASONALITY_PROVIDER: "openmeteo"
       TN_LOG_USER_MESSAGES: "0"
     init: true
