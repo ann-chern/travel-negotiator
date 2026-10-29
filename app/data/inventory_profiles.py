@@ -1,4 +1,4 @@
-"""Доступ к валидированным профилям отелей и маршрутов из JSON-каталога."""
+"""Access validated hotel and route profiles from the JSON catalog."""
 
 from app.data.loader import HotelProfile, RouteProfile, load_catalog_fixtures
 

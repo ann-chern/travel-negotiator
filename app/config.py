@@ -1,4 +1,4 @@
-"""Типизированная загрузка настроек из TOML с переопределением через окружение."""
+"""Load typed TOML settings with environment overrides."""
 
 from __future__ import annotations
 
@@ -55,7 +55,7 @@ def _as_bool(value: str) -> bool:
 
 
 def load_settings(path: Path = SETTINGS_PATH) -> ApplicationSettings:
-    """Загрузить базовые настройки и применить переменные окружения."""
+    """Load base settings and apply environment variables."""
     data = tomllib.loads(path.read_text(encoding="utf-8"))
     yandex = data.setdefault("yandex", {})
     catalog = data.setdefault("catalog", {})

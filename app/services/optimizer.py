@@ -266,7 +266,7 @@ def search_and_negotiate(request: TripRequest, *, limit: int = 3) -> SearchResul
     ranked = _rank_candidates(request, candidates)
     if ranked:
         return SearchResult("ready", ranked=tuple(ranked[:limit]))
-    # Каждый компромисс повторно проходит валидацию без одного ограничения.
+    # Revalidate every compromise with one constraint removed.
     compromises: list[Compromise] = []
     for i, c in enumerate(request.constraints):
         if c.strength != Strength.HARD or not c.relaxation_allowed:

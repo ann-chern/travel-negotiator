@@ -29,6 +29,7 @@ from app.agent.intent_rules import (
 )
 from app.agent.llm_provider import ParsedTurn, TurnOperation, TurnParser
 from app.agent.orchestrator import _apply_turn
+from app.agent.skills.router import SkillRouter
 from app.constants.agent import (
     CANCEL_BOOKING_PHRASES,
     DECLINE_COMPROMISE_PHRASES,
@@ -48,6 +49,7 @@ from app.schemas.request import TripRequest
 from app.services.negotiation import NegotiatedSearch, search_with_plan_changes
 
 logger = logging.getLogger(__name__)
+DEFAULT_SKILL_ROUTER = SkillRouter()
 
 
 class TextGenerator(Protocol):
@@ -83,12 +85,14 @@ class GraphTravelAgent:
         search: SearchProvider = search_with_plan_changes,
         checkpointer: Any = None,
         booking: Any = None,
+        skill_router: SkillRouter | None = None,
     ):
         from langgraph.checkpoint.memory import InMemorySaver
         from langgraph.graph import END, START, StateGraph
 
         self.parser, self.writer, self.search = parser, writer, search
         self.booking = booking
+        self.skill_router = skill_router or DEFAULT_SKILL_ROUTER
         builder = StateGraph(TravelGraphState)
         builder.add_node("understand", self._understand_checkpoint_safe)
         builder.add_node("route", self._route)
@@ -212,7 +216,7 @@ class GraphTravelAgent:
                         "stage": "error",
                         "response": "Некорректное изменение бюджета.",
                     }
-                # Уступка повторно проверяется через MCP по актуальным данным.
+                # Recheck the concession through MCP against current data.
                 result = self.search(candidate)
                 offered = next(
                     (
@@ -340,7 +344,7 @@ class GraphTravelAgent:
         # A flexible month is already an answer: never ask for an exact day.
         calendar = interpret_calendar(msg, pending_question=s.pending_question)
         if calendar.kind != DateKind.UNCHANGED:
-            # Явные факты извлекаются независимо от результата модели.
+            # Extract explicit facts independently of the model output.
             base = reinforce_trip_duration(msg, reinforce_explicit_facts(msg, s.request))
             # The parser may recognize soft trip goals and unfamiliar wording.
             # Explicit calendar semantics always win over a guessed exact date.
@@ -391,7 +395,7 @@ class GraphTravelAgent:
                 "reasons": [],
                 "error": None,
             }
-        # Полный явный запрос обрабатывается и при недоступной модели.
+        # Process a complete explicit request even when the model is unavailable.
         if s.version == 0 and s.request == TripRequest():
             extracted = reinforce_trip_duration(msg, reinforce_explicit_facts(msg, s.request))
             if (
@@ -399,7 +403,7 @@ class GraphTravelAgent:
                 and extracted.travelers.adults is not None
                 and extracted.nights is not None
             ):
-                # Модель дополняет цель поездки, не заменяя явные факты.
+                # The model adds the travel goal without replacing explicit facts.
                 try:
                     semantic = self.parser.parse(msg, extracted.model_dump(mode="json"))
                     if semantic.intent != "other":
@@ -422,7 +426,7 @@ class GraphTravelAgent:
                     "selected_price_rub": None,
                     "booking_reference": None,
                 }
-        # Однозначное снятие ограничения не требует вызова модели.
+        # Removing an unambiguous constraint does not require a model call.
         turn = _simple_constraint_revision(msg)
         if turn is None:
             turn = self.parser.parse(s.user_message, s.request.model_dump(mode="json"))
@@ -441,7 +445,7 @@ class GraphTravelAgent:
             base = s.request.model_dump(mode="python")
             base["date_window"] = None
             base_request = TripRequest.model_validate(base)
-        # Явно названное направление имеет приоритет над результатом модели.
+        # An explicitly named destination takes precedence over model output.
         named_destination = explicit_destination(msg)
         if named_destination:
             if turn.operations:
@@ -561,7 +565,7 @@ class GraphTravelAgent:
 
     @staticmethod
     def _selected_option(options: list[dict[str, Any]], message: str) -> dict[str, Any] | None:
-        # Выбор варианта принимается только в однозначной форме.
+        # Accept an offer selection only when it is unambiguous.
         m = re.fullmatch(
             r"(?:беру|выбираю|выбрать|хочу|покажи|оформи)\s+(?:вариант\s+)?(первый|второй|третий|[1-3])\s*(?:вариант)?[.!\s]*",
             message.lower().strip(),
@@ -732,6 +736,7 @@ class GraphTravelAgent:
                 "compromise_request_version": None,
                 "reasons": ["Каталог предложений временно недоступен. Попробуй ещё раз."],
                 "response": "Каталог предложений временно недоступен. Попробуй ещё раз.",
+                "active_skill": None,
             }
         # MCP adapter returns validated public tool data, not internal TripCandidate objects.
         from app.agent.mcp_search import McpSearchResult
@@ -767,6 +772,7 @@ class GraphTravelAgent:
                 "compromises": res.compromises if status == "negotiating" else [],
                 "reasons": reasons,
                 "compromise_request_version": s.version if res.compromises else None,
+                "active_skill": None,
             }
         if res.original.status == "ready":
             options = [
@@ -792,6 +798,7 @@ class GraphTravelAgent:
                 "compromises": [],
                 "compromise_request_version": None,
                 "reasons": [] if options else ["Нет предложений для выбранного направления."],
+                "active_skill": None,
             }
         proposals = [
             {
@@ -808,6 +815,7 @@ class GraphTravelAgent:
             "compromises": proposals,
             "compromise_request_version": s.version if proposals else None,
             "reasons": list(res.original.reasons),
+            "active_skill": None,
         }
 
     @classmethod
@@ -816,6 +824,15 @@ class GraphTravelAgent:
 
     def _recommend(self, state: Any) -> dict[str, Any]:
         s = self._state(state)
+        router = getattr(self, "skill_router", DEFAULT_SKILL_ROUTER)
+        skill = router.for_recommendation(s.request, s.options)
+        if skill:
+            audit_event(
+                "agent.skill.selected",
+                skill=skill.name,
+                stage="recommendation",
+                tools=skill.tools,
+            )
         fallback = (
             "Найдены варианты в демонстрационном каталоге. "
             "Цены синтетические; выбери вариант из списка."
@@ -826,6 +843,8 @@ class GraphTravelAgent:
                 payload={
                     "request": s.request.model_dump(mode="json"),
                     "options": s.options,
+                    "skill": skill.name if skill else None,
+                    "skill_instructions": skill.instructions if skill else None,
                     "instruction": (
                         "Объясни выбор кратко. Используй ТОЛЬКО эти варианты, "
                         "цены и переданные свойства. В каждом варианте есть "
@@ -848,7 +867,8 @@ class GraphTravelAgent:
                     "response": (
                         f"Даты вылета для предложенных вариантов ({dates_text}). "
                         + (text or fallback)
-                    )
+                    ),
+                    "active_skill": skill.name if skill else None,
                 }
         response = text or fallback
         audit_event(
@@ -856,10 +876,22 @@ class GraphTravelAgent:
             option_ids=[o.get("id") for o in s.options],
             response=response,
         )
-        return {"response": response}
+        return {
+            "response": response,
+            "active_skill": skill.name if skill else None,
+        }
 
     def _negotiate(self, state: Any) -> dict[str, Any]:
         s = self._state(state)
+        router = getattr(self, "skill_router", DEFAULT_SKILL_ROUTER)
+        skill = router.for_negotiation(s.request, s.reasons, s.compromises)
+        if skill:
+            audit_event(
+                "agent.skill.selected",
+                skill=skill.name,
+                stage="negotiation",
+                tools=skill.tools,
+            )
         audit_event(
             "agent.negotiation.started",
             stage=s.stage,
@@ -868,7 +900,7 @@ class GraphTravelAgent:
         )
         fallback = "; ".join(s.reasons) or "Нет подтверждённых подходящих вариантов."
         if s.stage == "catalog_error":
-            return {"response": fallback}  # Never ask an LLM to fabricate unavailable offers.
+            return {"response": fallback, "active_skill": None}
         if s.compromises:
             fallback += " Доступны предложения изменить условия, но они требуют твоего согласия."
             fallback += (
@@ -876,9 +908,12 @@ class GraphTravelAgent:
                 "(или номер другого варианта); для отказа — "
                 "«отклоняю компромиссы»."
             )
-        # Рассчитанный дефицит бюджета возвращается без переформулировки моделью.
+        # Return the calculated budget gap without model paraphrasing.
         if s.stage == "no_match" and any("Минимальная цена" in r for r in s.reasons):
-            return {"response": fallback}
+            return {
+                "response": fallback,
+                "active_skill": skill.name if skill else None,
+            }
         if s.stage == "unsupported":
             return {
                 "response": (
@@ -897,6 +932,8 @@ class GraphTravelAgent:
                     "request": s.request.model_dump(mode="json"),
                     "reasons": s.reasons,
                     "compromises": s.compromises,
+                    "skill": skill.name if skill else None,
+                    "skill_instructions": skill.instructions if skill else None,
                     "instruction": (
                         "Не выдумывай варианты. Уступки не приняты: проси явного подтверждения."
                     ),
@@ -916,7 +953,10 @@ class GraphTravelAgent:
             response=response,
             requires_user_confirmation=bool(s.compromises),
         )
-        return {"response": response}
+        return {
+            "response": response,
+            "active_skill": skill.name if skill else None,
+        }
 
     def handle(self, thread_id: str, message: str) -> GraphReply:
         if not thread_id.strip():
@@ -927,7 +967,7 @@ class GraphTravelAgent:
             output = self.graph.invoke({"user_message": message}, config=config)
         except Exception as exc:
             error_class = type(exc).__name__
-            # В журнал попадает только класс ошибки, без текста и секретов.
+            # Log only the error class, without message text or secrets.
             logger.warning("Graph turn failed at processing: %s", error_class)
             prior = self.graph.get_state(config).values
             s = self._state(prior)
@@ -953,6 +993,7 @@ class GraphTravelAgent:
             request=s.request,
             options=tuple(s.options),
             compromises=tuple(s.compromises),
+            active_skill=s.active_skill,
         )
 
     def stream_updates(self, thread_id: str, message: str):
@@ -988,6 +1029,7 @@ class GraphTravelAgent:
                     request=state.request,
                     options=tuple(state.options),
                     compromises=tuple(state.compromises),
+                    active_skill=state.active_skill,
                 ),
             )
         except Exception as exc:

@@ -1,4 +1,4 @@
-"""Загрузка и проверка статического синтетического каталога из JSON."""
+"""Load and validate the static synthetic catalog from JSON."""
 
 from __future__ import annotations
 
@@ -155,7 +155,7 @@ def _unique_by_id(rows: tuple[FixtureModel, ...], field: str, document: str) -> 
 
 @lru_cache(maxsize=1)
 def load_catalog_fixtures(fixtures_dir: Path = FIXTURES_DIR) -> CatalogFixtures:
-    """Прочитать все справочники и проверить их взаимную целостность."""
+    """Read all reference files and validate their cross-file integrity."""
     destinations = DestinationsDocument.model_validate(
         _read_json(fixtures_dir / "destinations.json")
     ).destinations

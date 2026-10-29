@@ -1,4 +1,4 @@
-"""Проверка полноты локального климатического кэша."""
+"""Check whether the local climate cache is complete."""
 
 import json
 

@@ -1,4 +1,4 @@
-"""Регистрация и жизненный цикл ресурсов приложения."""
+"""Register application resources and manage their lifecycle."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from app.config import ApplicationSettings, load_settings
 
 
 class ApplicationContainer:
-    """Создаёт разделяемые сервисы лениво и освобождает их при остановке."""
+    """Create shared services lazily and release them on shutdown."""
 
     def __init__(self, settings: ApplicationSettings | None = None) -> None:
         self.settings = settings or load_settings()

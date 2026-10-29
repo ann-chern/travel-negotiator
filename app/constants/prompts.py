@@ -1,4 +1,4 @@
-"""Системные инструкции и шаблоны запросов к языковой модели."""
+"""System instructions and request templates for the language model."""
 
 PARSER_INSTRUCTIONS = """Ты — парсер изменений запроса туриста.
 Отвечай JSON-объектом с полями ParsedTurn.

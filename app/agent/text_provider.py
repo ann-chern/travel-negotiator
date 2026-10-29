@@ -45,8 +45,9 @@ class YandexTextGenerator:
         if task not in TEXT_GENERATION_PROMPTS:
             raise ValueError("Unknown task")
         task_payload = dict(payload)
+        skill_instructions = task_payload.pop("skill_instructions", None)
         if task == "recommendation":
-            # Для объяснения передается сокращенное представление карточек.
+            # Pass a compact card representation for the explanation.
             request = task_payload.get("request", {})
             if isinstance(request, dict):
                 task_payload["request"] = {
@@ -85,7 +86,15 @@ class YandexTextGenerator:
             ]
         task_payload["output_style"] = TEXT_OUTPUT_STYLE
         messages = [
-            {"role": "system", "content": TEXT_GENERATION_PROMPTS[task]},
+            {
+                "role": "system",
+                "content": TEXT_GENERATION_PROMPTS[task]
+                + (
+                    f"\n\nСпециализированная процедура:\n{skill_instructions}"
+                    if skill_instructions
+                    else ""
+                ),
+            },
             {
                 "role": "user",
                 "content": json.dumps(task_payload, ensure_ascii=False, default=str),

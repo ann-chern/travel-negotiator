@@ -1,4 +1,4 @@
-"""Модели обмена данными между слоями туристического агента."""
+"""Data exchange models for travel agent layers."""
 
 from __future__ import annotations
 
@@ -83,6 +83,21 @@ class DecisionKind(StrEnum):
     SEARCH = "search"
     CLARIFY = "clarify"
     CATALOG_GAP = "catalog_gap"
+
+
+class SkillName(StrEnum):
+    DESTINATION_DISCOVERY = "destination-discovery"
+    BUDGET_NEGOTIATION = "budget-negotiation"
+
+
+class SkillDefinition(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    name: SkillName
+    description: str = Field(min_length=1)
+    tools: tuple[str, ...] = Field(default_factory=tuple)
+    instructions: str = Field(min_length=1)
+    source: str = Field(min_length=1)
 
 
 class TurnOperation(BaseModel):
@@ -195,6 +210,7 @@ class TravelGraphState(BaseModel):
     selected_price_rub: str | None = Field(default=None)
     booking_reference: str | None = Field(default=None)
     compromise_request_version: int | None = Field(default=None)
+    active_skill: SkillName | None = Field(default=None)
 
 
 class GraphReply(BaseModel):
@@ -206,6 +222,7 @@ class GraphReply(BaseModel):
     request: TripRequest
     options: tuple[dict[str, Any], ...] = Field(default_factory=tuple)
     compromises: tuple[dict[str, Any], ...] = Field(default_factory=tuple)
+    active_skill: SkillName | None = Field(default=None)
 
 
 class Session(BaseModel):

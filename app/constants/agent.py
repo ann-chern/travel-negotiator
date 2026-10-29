@@ -1,4 +1,4 @@
-"""Константы правил и состояний агента."""
+"""Constants for agent rules and state."""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-"""Стандартные вопросы для обязательных параметров поездки."""
+"""Standard questions for required trip parameters."""
 
 from app.schemas.agent import Clarification
 

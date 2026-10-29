@@ -1,4 +1,4 @@
-"""Импорт проверенных исторических наблюдений предложений."""
+"""Import verified historical offer observations."""
 
 import argparse
 from pathlib import Path

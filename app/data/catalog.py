@@ -1,4 +1,4 @@
-"""Детерминированная сборка синтетических предложений из JSON-справочников."""
+"""Build deterministic synthetic offers from JSON reference data."""
 
 from __future__ import annotations
 
@@ -46,7 +46,7 @@ HOTEL_PROFILES = tuple(
 
 
 def active_cities() -> tuple[DestinationFixture, ...]:
-    """Вернуть единый основной каталог из 15 направлений."""
+    """Return the single primary catalog of 15 destinations."""
     return DESTINATIONS
 
 
@@ -64,7 +64,7 @@ def _provenance() -> Provenance:
 
 
 def destinations() -> list[Destination]:
-    """Преобразовать справочник направлений в публичные модели каталога."""
+    """Convert destination fixtures into public catalog models."""
     return [
         Destination(
             id=destination.id,
@@ -85,7 +85,7 @@ def destinations() -> list[Destination]:
 
 
 def hotels(destination_id: str | None = None) -> list[Hotel]:
-    """Собрать синтетические гостиницы рядом с центрами направлений."""
+    """Build synthetic hotels near destination centers."""
     return [
         Hotel(
             id=f"{destination.id}-{slug}",
@@ -111,7 +111,7 @@ def hotels(destination_id: str | None = None) -> list[Hotel]:
 
 
 def generate_candidates(request: TripRequest, *, max_results: int = 100) -> list[TripCandidate]:
-    """Собрать комбинации гостиниц, перелётов и трансферов."""
+    """Build combinations of hotels, flights, and transfers."""
     if max_results < 1:
         raise ValueError("max_results must be >= 1")
     if not request.origin or request.origin.strip().casefold() not in {

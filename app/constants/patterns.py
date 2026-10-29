@@ -1,4 +1,4 @@
-"""Скомпилированные регулярные выражения для правил агента."""
+"""Compiled regular expressions for agent rules."""
 
 import re
 

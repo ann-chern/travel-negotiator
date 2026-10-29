@@ -1,1 +1,1 @@
-"""Ручные команды обслуживания данных приложения."""
+"""Manual commands for maintaining application data."""

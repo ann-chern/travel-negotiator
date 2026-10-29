@@ -57,7 +57,8 @@ def trip_interval(
     """Recognize an explicit trip stay, not a flight departure *window*.
 
     A stand-alone range in response to a question about nights means a stay.
-    'вылет с 5 по 7 ноября' remains a departure window.
+    A Russian phrase meaning "departure from November 5 to 7" remains a
+    departure window.
     """
     normalized = text.lower().replace("ё", "е")
     if FLIGHT_DEPARTURE_WINDOW_PATTERN.search(normalized):

@@ -1,4 +1,4 @@
-"""Явное обновление климатического кэша Open-Meteo."""
+"""Explicitly refresh the Open-Meteo climate cache."""
 
 import argparse
 from pathlib import Path

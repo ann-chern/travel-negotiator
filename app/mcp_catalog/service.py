@@ -130,7 +130,7 @@ def _portfolio(
             ),
         )
         if len(chosen) < limit:
-            # Метка комфорта требует реального улучшения категории или питания.
+            # A comfort label requires an actual category or meal-plan upgrade.
             baseline = chosen[0]
             meal_order = {
                 "none": 0,
@@ -438,7 +438,7 @@ class CatalogService:
         if not found:
             message = "В демо-каталоге нет подходящих предложений на даты выбранного периода"
             if had_no_match and request.budget is not None:
-                # Порог цены рассчитывается по всему периоду без изменения бюджета.
+                # Calculate the price threshold across the period without changing the budget.
                 relaxed = request.model_copy(update={"budget": None})
                 cheapest = None
                 cheapest_day = None
@@ -656,7 +656,7 @@ class CatalogService:
                 offer_id=offer_id,
                 message=f"Cannot simulate booking: cart status {validation.status}",
             )
-        # Идентификатор относится только к демонстрационной операции.
+        # The identifier applies only to the demo operation.
         signature = hashlib.sha256(
             (offer_id + "|" + str(validation.total_rub)).encode()
         ).hexdigest()[:12]
