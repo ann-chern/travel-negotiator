@@ -11,25 +11,8 @@ import calendar
 import re
 from datetime import date
 
+from app.constants.agent import MONTH_PATTERN, MONTH_STEMS
 from app.schemas.request import DateWindow
-
-MONTH_STEMS = {
-    "январ": 1,
-    "феврал": 2,
-    "март": 3,
-    "апрел": 4,
-    "ма": 5,
-    "июн": 6,
-    "июл": 7,
-    "август": 8,
-    "сентябр": 9,
-    "октябр": 10,
-    "ноябр": 11,
-    "декабр": 12,
-}
-MONTH_PATTERN = re.compile(
-    r"\b(январ[ьяе]|феврал[ьяе]|март[ае]?|апрел[ьяе]|ма[йяе]|июн[ьяе]|июл[ьяе]|август[ае]?|сентябр[ьяе]|октябр[ьяе]|ноябр[ьяе]|декабр[ьяе])\b"
-)
 
 
 def recognize_window(text: str, today: date | None = None) -> DateWindow | None:

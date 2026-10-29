@@ -1,11 +1,13 @@
-"""Run explicitly to refresh Open-Meteo data; no runtime API dependence."""
+"""Явное обновление климатического кэша Open-Meteo."""
 
 import argparse
+from pathlib import Path
 
 from app.data.catalog import CITIES, EXTENDED_CITIES
 from app.services.openmeteo import refresh_city, write_cache
 
-if __name__ == "__main__":
+
+def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--start-year", type=int, default=2022)
     parser.add_argument("--end-year", type=int, default=2025)
@@ -16,8 +18,10 @@ if __name__ == "__main__":
     )
     parser.add_argument("--out", default=None, help="Optional cache output path")
     args = parser.parse_args()
+
     records = []
-    for city in CITIES + (EXTENDED_CITIES if args.include_extended else ()):
+    cities = CITIES + (EXTENDED_CITIES if args.include_extended else ())
+    for city in cities:
         try:
             records.append(
                 refresh_city(
@@ -33,17 +37,19 @@ if __name__ == "__main__":
             print(city.id, type(exc).__name__, "not added")
     if not records:
         raise SystemExit("No climate data retrieved; keeping existing cache untouched")
-    if args.out:
-        from pathlib import Path
 
-        write_cache(records, Path(args.out))
-    else:
-        write_cache(records)
+    write_cache(records, Path(args.out)) if args.out else write_cache(records)
     missing = [
-        r["city_id"]
-        for r in records
-        if not any(isinstance(m.get("sea_c"), (int, float)) for m in r["months"].values())
+        record["city_id"]
+        for record in records
+        if not any(
+            isinstance(month.get("sea_c"), (int, float)) for month in record["months"].values()
+        )
     ]
     if missing:
         print("WARNING: No validated marine temperatures for:", ", ".join(missing))
     print(f"Climate records: {len(records)}; marine data requires verification before ranking.")
+
+
+if __name__ == "__main__":
+    main()

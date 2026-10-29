@@ -6,74 +6,15 @@ No user request is mutated here. The existing orchestrator applies validated edi
 from __future__ import annotations
 
 import json
-import os
 import time
 from datetime import date
-from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
+from pydantic import ValidationError
 
-from app.agent.llm_provider import ParsedTurn, TurnOperation
+from app.config import ApplicationSettings, load_settings
+from app.constants.prompts import COMPACT_PARSER_SYSTEM_PROMPT
 from app.observability import event as audit_event
-
-
-class CompactTurn(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-    intent: Literal["plan", "revise", "other"] = "plan"
-    operations: list[TurnOperation] = Field(default_factory=list)
-    travel_goal: Literal["beach", "culture", "nature", "city", "family", "relax"] | None = None
-    unsupported_requirements: list[str] = Field(default_factory=list)
-    allow_nights: bool = False
-    allow_date_shift: bool = False
-    allow_budget_increase: bool = False
-
-    @model_validator(mode="after")
-    def non_conflicting(self):
-        fields = [op.field for op in self.operations]
-        if len(fields) != len(set(fields)):
-            raise ValueError("Duplicate operations on one field")
-        return self
-
-    def as_parsed_turn(self) -> ParsedTurn:
-        return ParsedTurn.model_validate(self.model_dump(mode="python"))
-
-
-SYSTEM_PROMPT = """Ты извлекаешь ИЗМЕНЕНИЯ требований к поездке.
-Ответь ТОЛЬКО компактным JSON объектом.
-Ключи: intent (plan/revise/other), operations (массив),
-unsupported_requirements (массив строк), allow_nights, allow_date_shift,
-allow_budget_increase (булевы значения),
-travel_goal (beach/culture/nature/city/family/relax/null).
-Операция: {"op":"set" или "remove", "field":"имя поля", "value":значение или null}.
-Разрешены поля: origin, destination, departure_date, nights, adults, budget_rub,
-children_ages, pets, transport.stops, hotel.meal_plan.
-Примеры:
-«Мы вдвоём из Москвы» => {"intent":"plan","operations":[
-{"op":"set","field":"origin","value":"Москва"},
-{"op":"set","field":"adults","value":2}]}
-«Пересадки теперь можно» => {"intent":"revise","operations":[
-{"op":"remove","field":"transport.stops","value":null}]}
-«Питание больше не нужно» => {"intent":"revise","operations":[
-{"op":"remove","field":"hotel.meal_plan","value":null}]}
-«Прямые рейсы» => {"intent":"revise","operations":[
-{"op":"set","field":"transport.stops","value":0}]}
-«С собакой» => {"intent":"revise","operations":[{"op":"set","field":"pets","value":"dog"}]}
-«С ребёнком 4 лет» => {"intent":"revise","operations":[
-{"op":"set","field":"children_ages","value":[4]}]}
-«С завтраком» => {"intent":"revise","operations":[
-{"op":"set","field":"hotel.meal_plan","value":"breakfast"}]}
-Дата departure_date: ISO YYYY-MM-DD, значение строкой. Не выдумывай отсутствующие факты.
-Не дублируй текущее состояние в operations. Сохранить прежнее значение = НЕ возвращать операцию.
-Если данных не хватает, оставь поле неизменным; не придумывай дату или город.
-Цель отдыха извлекай по смыслу: желание купаться => travel_goal=beach.
-Не приравнивай любой город у моря к пляжному отдыху в любой сезон.
-Диапазон («с 14 по 30 ноября») и приблизительная дата
-(«во второй половине ноября») НЕ являются точной датой:
-не создавай операцию departure_date. Их обрабатывает модуль уточнений.
-Если пользователь сообщает точный день и месяц, выбирай год из текущего
-состояния и текущего календарного года, не меняя день.
-Не пиши рассуждения и markdown. Все неуказанные массивы пустые, флаги false.
-"""
+from app.schemas.agent import CompactTurn, ParsedTurn
 
 
 class CompactYandexTurnParser:
@@ -86,32 +27,35 @@ class CompactYandexTurnParser:
         api_key: str | None = None,
         folder_id: str | None = None,
         client=None,
-        timeout: float = 20.0,
-        max_tokens: int = 750,
+        timeout: float | None = None,
+        max_tokens: int | None = None,
         retry_invalid: bool = True,
+        settings: ApplicationSettings | None = None,
     ):
-        folder = folder_id or os.getenv("YANDEX_FOLDER_ID")
+        configuration = settings or load_settings()
+        yandex = configuration.yandex
+        folder = folder_id or yandex.folder_id
         if not folder:
             raise RuntimeError("YANDEX_FOLDER_ID is required")
-        self.model = model or os.getenv("YANDEX_MODEL", "deepseek-v4.1-flash")
+        self.model = model or yandex.model
         if not self.model.startswith("gpt://"):
             self.model = f"gpt://{folder}/{self.model}"
         if client is None:
-            key = api_key or os.getenv("YANDEX_API_KEY")
+            key = api_key or yandex.api_key
             if not key:
                 raise RuntimeError("YANDEX_API_KEY is required")
             from openai import OpenAI
 
             client = OpenAI(
                 api_key=key,
-                base_url=os.getenv("YANDEX_BASE_URL", "https://ai.api.cloud.yandex.net/v1"),
+                base_url=yandex.base_url,
                 project=folder,
                 max_retries=0,
-                timeout=timeout,
+                timeout=timeout or yandex.compact_timeout_seconds,
             )
         self.client = client
-        self.timeout = timeout
-        self.max_tokens = max_tokens
+        self.timeout = timeout or yandex.compact_timeout_seconds
+        self.max_tokens = max_tokens or yandex.compact_max_tokens
         self.retry_invalid = retry_invalid
         self.last_diagnostic: dict = {}
 
@@ -125,7 +69,7 @@ class CompactYandexTurnParser:
             current_state=current_state,
         )
         messages = [
-            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "system", "content": COMPACT_PARSER_SYSTEM_PROMPT},
             {
                 "role": "user",
                 "content": json.dumps(

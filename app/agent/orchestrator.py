@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
 from decimal import Decimal
 
 from app.agent.llm_provider import ParsedTurn, TurnParser
+from app.schemas.agent import AgentReply, Session
 from app.schemas.request import (
     Budget,
     Constraint,
@@ -21,30 +21,7 @@ from app.schemas.request import (
     UnresolvedRequirement,
     apply_request_patch,
 )
-from app.services.negotiation import NegotiatedSearch, search_with_plan_changes
-
-
-@dataclass
-class Session:
-    request: TripRequest = field(default_factory=TripRequest)
-    version: int = 0
-    search: NegotiatedSearch | None = None
-    flags: dict[str, bool] = field(
-        default_factory=lambda: {
-            "allow_nights": False,
-            "allow_date_shift": False,
-            "allow_budget_increase": False,
-        }
-    )
-
-
-@dataclass(frozen=True)
-class AgentReply:
-    status: str
-    message: str
-    version: int
-    options: tuple[dict, ...] = ()
-    compromises: tuple[dict, ...] = ()
+from app.services.negotiation import search_with_plan_changes
 
 
 def _apply_explicit_operations(request: TripRequest, turn: ParsedTurn) -> TripRequest:
@@ -266,14 +243,18 @@ class TravelAgent:
     def handle(self, session: Session, message: str) -> AgentReply:
         """Transactional update; on LLM/search failures state remains unchanged."""
         if not message.strip():
-            return AgentReply("error", "Напиши, какой отдых ты ищешь.", session.version)
+            return AgentReply(
+                status="error",
+                message="Напиши, какой отдых ты ищешь.",
+                version=session.version,
+            )
         try:
             turn = self.parser.parse(message, session.request.model_dump(mode="json"))
             if turn.intent == "other":
                 return AgentReply(
-                    "other",
-                    "Я помогаю планировать поездки. Опиши желаемую поездку.",
-                    session.version,
+                    status="other",
+                    message="Я помогаю планировать поездки. Опиши желаемую поездку.",
+                    version=session.version,
                 )
             candidate = _apply_turn(session.request, turn)
             flags = dict(session.flags)
@@ -291,10 +272,12 @@ class TravelAgent:
         except Exception as exc:
             # No exception details / secrets in UI; log in application layer.
             return AgentReply(
-                "error",
-                f"Не удалось обработать запрос ({type(exc).__name__}). "
-                "Повтори или уточни формулировку.",
-                session.version,
+                status="error",
+                message=(
+                    f"Не удалось обработать запрос ({type(exc).__name__}). "
+                    "Повтори или уточни формулировку."
+                ),
+                version=session.version,
             )
         session.request = candidate
         session.flags = flags
@@ -302,9 +285,9 @@ class TravelAgent:
         session.version += 1
         if missing:
             return AgentReply(
-                "needs_input",
-                "Уточни, пожалуйста: " + ", ".join(missing) + ".",
-                session.version,
+                status="needs_input",
+                message="Уточни, пожалуйста: " + ", ".join(missing) + ".",
+                version=session.version,
             )
         assert result is not None
         if result.original.status != "ready":
@@ -318,10 +301,10 @@ class TravelAgent:
             )
             reason = "; ".join(result.original.reasons) or "Нет подходящих предложений"
             return AgentReply(
-                result.original.status,
-                reason
+                status=result.original.status,
+                message=reason
                 + (" Возможны изменения условий — выбери предложение." if proposal_rows else ""),
-                session.version,
+                version=session.version,
                 compromises=proposal_rows,
             )
         options = tuple(
@@ -337,8 +320,8 @@ class TravelAgent:
             for x in result.original.ranked
         )
         return AgentReply(
-            "ready",
-            "Вот доступные в демонстрационном каталоге варианты (цены синтетические).",
-            session.version,
+            status="ready",
+            message="Вот доступные в демонстрационном каталоге варианты (цены синтетические).",
+            version=session.version,
             options=options,
         )

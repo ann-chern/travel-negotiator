@@ -11,7 +11,7 @@ WORKDIR /app
 RUN groupadd --system app && useradd --system --gid app --home-dir /app app
 COPY --from=builder /workspace/.venv /workspace/.venv
 COPY app /app/app
-COPY scripts /app/scripts
+COPY configs /app/configs
 USER app
 EXPOSE 8080
-CMD ["uvicorn", "app.web.api:app", "--host", "0.0.0.0", "--port", "8080", "--workers", "1"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080", "--workers", "1"]

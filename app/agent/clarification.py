@@ -6,17 +6,15 @@ search across destinations is valid. Never infer a date or an adult count.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-
+from app.constants.clarifications import (
+    ADULTS_CLARIFICATION,
+    CHILDREN_AGES_CLARIFICATION,
+    DEPARTURE_DATE_CLARIFICATION,
+    NIGHTS_CLARIFICATION,
+    ORIGIN_CLARIFICATION,
+)
+from app.schemas.agent import Clarification
 from app.schemas.request import TripRequest
-
-
-@dataclass(frozen=True)
-class Clarification:
-    code: str
-    question: str
-    missing_label: str
-    reason: str
 
 
 def clarification_plan(request: TripRequest) -> tuple[Clarification, ...]:
@@ -28,53 +26,23 @@ def clarification_plan(request: TripRequest) -> tuple[Clarification, ...]:
     """
     questions: list[Clarification] = []
     if not request.origin:
-        questions.append(
-            Clarification(
-                "origin",
-                "Из какого города планируете выезжать?",
-                "город отправления",
-                "required",
-            )
-        )
+        questions.append(ORIGIN_CLARIFICATION)
     if request.departure_date is None and request.date_window is None:
-        questions.append(
-            Clarification(
-                "departure_date",
-                "Когда хотите выехать? Можно указать точную дату или период до 31 дня.",
-                "дату или период отправления",
-                "required",
-            )
-        )
+        questions.append(DEPARTURE_DATE_CLARIFICATION)
     if request.nights is None:
-        questions.append(
-            Clarification(
-                "nights",
-                "На сколько ночей планируете поездку?",
-                "продолжительность поездки",
-                "required",
-            )
-        )
+        questions.append(NIGHTS_CLARIFICATION)
     if request.travelers.adults is None:
-        questions.append(
-            Clarification("adults", "Сколько взрослых поедет?", "число взрослых", "required")
-        )
+        questions.append(ADULTS_CLARIFICATION)
     if request.travelers.children_ages_unknown:
-        questions.append(
-            Clarification(
-                "children_ages",
-                "Сколько лет каждому ребёнку на момент поездки?",
-                "возраст детей",
-                "missing_detail",
-            )
-        )
+        questions.append(CHILDREN_AGES_CLARIFICATION)
     for idx, item in enumerate(request.unresolved):
         if item.reason in ("ambiguous", "missing_detail"):
             questions.append(
                 Clarification(
-                    f"unresolved_{idx}",
-                    f"Уточни, пожалуйста, что ты имеешь в виду: «{item.text}»?",
-                    item.text,
-                    item.reason,
+                    code=f"unresolved_{idx}",
+                    question=f"Уточни, пожалуйста, что ты имеешь в виду: «{item.text}»?",
+                    missing_label=item.text,
+                    reason=item.reason,
                 )
             )
     return tuple(questions)

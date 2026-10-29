@@ -5,9 +5,8 @@ from __future__ import annotations
 import json
 import logging
 import sys
-from functools import lru_cache
+from contextlib import asynccontextmanager
 from pathlib import Path
-from threading import RLock
 from uuid import UUID, uuid4
 
 from fastapi import FastAPI, HTTPException, Response
@@ -15,30 +14,34 @@ from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
+from app.containers import ApplicationContainer
 from app.observability import event as audit_event
 from app.observability import turn_context, user_message_value
 from app.web.presentation import STAGES, commands_for_status, option_view
 
 STATIC = Path(__file__).resolve().parent / "static"
-app = FastAPI(title="Travel Negotiator", version="0.1.0", docs_url=None, redoc_url=None)
+container = ApplicationContainer()
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    yield
+    container.close()
+
+
+app = FastAPI(
+    title="Travel Negotiator",
+    version="0.1.0",
+    docs_url=None,
+    redoc_url=None,
+    lifespan=lifespan,
+)
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
-_agent_lock = RLock()  # InMemorySaver is process local: one worker for demo.
+_agent_lock = container.agent_lock
 
 
-@lru_cache(maxsize=1)
 def get_agent():
-    from app.agent.compact_parser import CompactYandexTurnParser
-    from app.agent.graph_agent import GraphTravelAgent
-    from app.agent.mcp_booking import McpCatalogBooking
-    from app.agent.mcp_search import McpCatalogSearch
-    from app.agent.text_provider import YandexTextGenerator
-
-    return GraphTravelAgent(
-        CompactYandexTurnParser(),
-        YandexTextGenerator(),
-        search=McpCatalogSearch(),
-        booking=McpCatalogBooking(),
-    )
+    return container.agent
 
 
 class ChatInput(BaseModel):

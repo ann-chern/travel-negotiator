@@ -7,40 +7,12 @@ supplier inventory, booking availability, or prices.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from datetime import date
-from enum import Enum
 
 from app.agent.date_intent import recognize_window
-from app.schemas.request import DateWindow, TripRequest
-
-
-class DateKind(str, Enum):
-    UNCHANGED = "unchanged"
-    EXACT_STAY = "exact_stay"
-    FLEXIBLE_DEPARTURE = "flexible_departure"
-
-
-class DecisionKind(str, Enum):
-    SEARCH = "search"
-    CLARIFY = "clarify"
-    CATALOG_GAP = "catalog_gap"
-
-
-@dataclass(frozen=True)
-class DateInterpretation:
-    kind: DateKind
-    window: DateWindow | None = None
-    departure: date | None = None
-    return_date: date | None = None
-    nights: int | None = None
-
-
-@dataclass(frozen=True)
-class PlanningDecision:
-    kind: DecisionKind
-    question: str | None = None
-    missing_field: str | None = None
+from app.constants.agent import TRAVEL_GOAL_TAGS
+from app.schemas.agent import DateInterpretation, DateKind, DecisionKind, PlanningDecision
+from app.schemas.request import TripRequest
 
 
 def interpret_calendar(
@@ -57,12 +29,15 @@ def interpret_calendar(
     if stay:
         start, end, nights = stay
         return DateInterpretation(
-            DateKind.EXACT_STAY, departure=start, return_date=end, nights=nights
+            kind=DateKind.EXACT_STAY,
+            departure=start,
+            return_date=end,
+            nights=nights,
         )
     window = recognize_window(message, today=today)
     if window:
-        return DateInterpretation(DateKind.FLEXIBLE_DEPARTURE, window=window)
-    return DateInterpretation(DateKind.UNCHANGED)
+        return DateInterpretation(kind=DateKind.FLEXIBLE_DEPARTURE, window=window)
+    return DateInterpretation(kind=DateKind.UNCHANGED)
 
 
 def apply_calendar(request: TripRequest, interpretation: DateInterpretation) -> TripRequest:
@@ -91,11 +66,15 @@ def decide_next(request: TripRequest) -> PlanningDecision:
     from app.agent.intent_rules import unsupported_destination_message
 
     if unsupported_destination_message(request):
-        return PlanningDecision(DecisionKind.CATALOG_GAP)
+        return PlanningDecision(kind=DecisionKind.CATALOG_GAP)
     focus = select_clarification(request)
     if focus:
-        return PlanningDecision(DecisionKind.CLARIFY, focus.question, focus.code)
-    return PlanningDecision(DecisionKind.SEARCH)
+        return PlanningDecision(
+            kind=DecisionKind.CLARIFY,
+            question=focus.question,
+            missing_field=focus.code,
+        )
+    return PlanningDecision(kind=DecisionKind.SEARCH)
 
 
 def apply_travel_goal(request: TripRequest, goal: str | None) -> TripRequest:
@@ -108,16 +87,7 @@ def apply_travel_goal(request: TripRequest, goal: str | None) -> TripRequest:
         return request
     from app.schemas.request import Importance, Preference, Source
 
-    # Translate the intent taxonomy into existing catalog destination tags.
-    tags = {
-        "beach": "beach",
-        "culture": "culture",
-        "nature": "nature",
-        "city": "city",
-        "family": "family",
-        "relax": "family",
-    }
-    tag = tags.get(goal)
+    tag = TRAVEL_GOAL_TAGS.get(goal)
     if tag is None:
         return request
     prefs = [p for p in request.preferences if p.field != "destination.tags"]

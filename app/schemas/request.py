@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import date
 from decimal import Decimal
-from enum import Enum
+from enum import StrEnum
 from typing import Annotated, Literal, Union
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
@@ -14,24 +14,24 @@ class StrictModel(BaseModel):
     model_config = ConfigDict(extra="forbid", validate_assignment=True)
 
 
-class Strength(str, Enum):
+class Strength(StrEnum):
     HARD = "hard"
     SOFT = "soft"
 
 
-class Source(str, Enum):
+class Source(StrEnum):
     EXPLICIT = "explicit"
     INFERRED = "inferred"
     DEFAULT = "default"
 
 
-class Importance(str, Enum):
+class Importance(StrEnum):
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
 
 
-class Operator(str, Enum):
+class Operator(StrEnum):
     EQ = "eq"
     NEQ = "neq"
     GTE = "gte"

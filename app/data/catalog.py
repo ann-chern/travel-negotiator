@@ -12,6 +12,7 @@ from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from zoneinfo import ZoneInfo
 
+from app.config import load_settings
 from app.data.demo_pricing import flight_oneway, hotel_nightly, transfer_oneway
 from app.data.inventory_profiles import HOTELS, route_for
 from app.schemas.inventory import (
@@ -251,9 +252,7 @@ EXTENDED_CITIES = (
 
 
 def active_cities() -> tuple[CitySeed, ...]:
-    import os
-
-    return CITIES + EXTENDED_CITIES if os.environ.get("TN_EXTENDED_DEMO", "0") == "1" else CITIES
+    return CITIES + EXTENDED_CITIES if load_settings().catalog.extended_demo else CITIES
 
 
 # Price/night for two adults; extra-person fees applied below. All examples fictional.

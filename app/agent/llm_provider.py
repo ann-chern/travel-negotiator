@@ -3,101 +3,22 @@
 from __future__ import annotations
 
 import json
-import os
 from datetime import date
-from typing import Literal, Protocol
+from typing import Protocol
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
+from pydantic import ValidationError
 
+from app.config import ApplicationSettings, load_settings
+from app.constants.prompts import PARSER_INSTRUCTIONS
+from app.schemas.agent import ParsedTurn, TurnOperation
 
-class TurnOperation(BaseModel):
-    """Atomic user-intended edit of one allowlisted concept.
+INSTRUCTIONS = PARSER_INSTRUCTIONS
 
-    No arbitrary object paths or executable tool names are accepted.
-    """
-
-    model_config = ConfigDict(extra="forbid")
-    op: Literal["set", "remove"]
-    field: Literal[
-        "origin",
-        "destination",
-        "departure_date",
-        "nights",
-        "adults",
-        "budget_rub",
-        "children_ages",
-        "pets",
-        "transport.stops",
-        "hotel.meal_plan",
-    ]
-    value: str | int | bool | list[int] | None = None
-
-    @model_validator(mode="after")
-    def valid_value(self):
-        if self.op == "remove" and self.value is not None:
-            raise ValueError("remove must not supply value")
-        if self.op == "set" and self.value is None:
-            raise ValueError("set requires value")
-        return self
-
-
-class ParsedTurn(BaseModel):
-    """LLM output: only changed values; null means 'not mentioned'.
-
-    To remove a field, use clear_fields. A real removal is an explicit operation.
-    """
-
-    model_config = ConfigDict(extra="forbid")
-    operations: list[TurnOperation] = Field(default_factory=list)
-    origin: str | None = None
-    destination: str | None = None
-    departure_date: date | None = None
-    nights: int | None = Field(default=None, ge=1, le=60)
-    adults: int | None = Field(default=None, ge=1, le=30)
-    budget_rub: int | None = Field(default=None, ge=1)
-    budget_hard: bool | None = None
-    travel_goal: Literal["beach", "culture", "nature", "city", "family", "relax"] | None = None
-    # Null = unchanged. Explicit deletion uses clear_fields/clear_constraints.
-    children_ages: list[int] | None = None
-    children_ages_unknown: int | None = Field(default=None, ge=0, le=30)
-    pet_kind: Literal["dog", "cat", "other"] | None = None
-    pet_count: int | None = Field(default=None, ge=1, le=10)
-    direct_flights: bool | None = None
-    meal_plan: Literal["none", "breakfast", "half_board", "all_inclusive"] | None = None
-    clear_constraints: list[Literal["transport.stops", "hotel.meal_plan"]] = Field(
-        default_factory=list
-    )
-    clear_fields: list[
-        Literal[
-            "origin",
-            "destination",
-            "departure_date",
-            "nights",
-            "budget",
-            "pets",
-            "children",
-        ]
-    ] = Field(default_factory=list)
-    allow_nights: bool = False
-    allow_date_shift: bool = False
-    allow_budget_increase: bool = False
-    intent: Literal["plan", "revise", "other"] = "plan"
-    unsupported_requirements: list[str] = Field(default_factory=list)
+__all__ = ["INSTRUCTIONS", "ParsedTurn", "TurnOperation", "TurnParser", "YandexTurnParser"]
 
 
 class TurnParser(Protocol):
     def parse(self, message: str, current_state: dict) -> ParsedTurn: ...
-
-
-INSTRUCTIONS = """Ты — парсер изменений запроса туриста. Отвечай JSON-объектом с полями ParsedTurn.
-Извлекай только изменённые требования, не угадывай недостающие данные.
-Предпочитай один формат: operations или legacy, никогда не смешивай их.
-Для operations используй op=set/remove, field, value (для remove null).
-Учитывай явно заданные требования к детям, питомцам, пересадкам и питанию.
-Если пользователь назвал цель отдыха, верни travel_goal:
-beach (пляж, купание), culture, nature, city, family или relax.
-Цель поездки — предпочтение, не жёсткая фильтрация. Если цель не ясна, верни null.
-"""
 
 
 class YandexTurnParser:
@@ -108,9 +29,12 @@ class YandexTurnParser:
         api_key: str | None = None,
         folder_id: str | None = None,
         client=None,
+        settings: ApplicationSettings | None = None,
     ):
-        key = api_key or os.getenv("YANDEX_API_KEY")
-        folder = folder_id or os.getenv("YANDEX_FOLDER_ID")
+        configuration = settings or load_settings()
+        yandex = configuration.yandex
+        key = api_key or yandex.api_key
+        folder = folder_id or yandex.folder_id
         if not folder:
             raise RuntimeError("YANDEX_FOLDER_ID is required for Agent Mode")
         if client is None:
@@ -120,13 +44,14 @@ class YandexTurnParser:
 
             client = OpenAI(
                 api_key=key,
-                base_url="https://ai.api.cloud.yandex.net/v1",
+                base_url=yandex.base_url,
                 project=folder,
-                timeout=60.0,
+                timeout=yandex.parser_timeout_seconds,
                 max_retries=0,
             )
         self.client = client
-        model_name = model or os.getenv("YANDEX_MODEL", "aliceai-llm-flash")
+        self.settings = configuration
+        model_name = model or yandex.parser_model
         self.model = (
             model_name if model_name.startswith("gpt://") else f"gpt://{folder}/{model_name}"
         )
@@ -147,10 +72,11 @@ class YandexTurnParser:
             ensure_ascii=False,
             default=str,
         )
-        # This can be overridden for a specific provider/model through .env.
-        mode = os.getenv(
-            "YANDEX_PARSER_FORMAT",
-            "json_object" if "deepseek" in self.model.lower() else "json_schema",
+        configured_mode = self.settings.yandex.parser_format
+        mode = (
+            ("json_object" if "deepseek" in self.model.lower() else "json_schema")
+            if configured_mode == "auto"
+            else configured_mode
         )
         if mode not in {"json_schema", "json_object"}:
             raise ValueError("YANDEX_PARSER_FORMAT must be json_schema or json_object")
@@ -166,7 +92,7 @@ class YandexTurnParser:
         messages = [
             {
                 "role": "system",
-                "content": INSTRUCTIONS
+                "content": PARSER_INSTRUCTIONS
                 + "\nОтвет — JSON-объект. Не смешивай operations с legacy-полями. "
                 "Если указан operations, остальные поля оставляй null/пустыми. "
                 "Для удаления используй remove и value=null. "
@@ -182,7 +108,7 @@ class YandexTurnParser:
                     messages=messages,
                     response_format=response_format,
                     temperature=0,
-                    max_tokens=2400,
+                    max_tokens=self.settings.yandex.parser_max_tokens,
                 )
             except Exception as exc:
                 # Only transient transport/timeouts receive one retry.

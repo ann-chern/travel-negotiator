@@ -1,0 +1,26 @@
+[web]
+host = "0.0.0.0"
+port = 8080
+workers = 1
+
+[yandex]
+base_url = "https://ai.api.cloud.yandex.net/v1"
+model = "deepseek-v4.1-flash"
+parser_model = "aliceai-llm-flash"
+parser_format = "auto"
+compact_timeout_seconds = 20.0
+compact_max_tokens = 750
+parser_timeout_seconds = 60.0
+parser_max_tokens = 2400
+text_timeout_seconds = 25.0
+text_max_retries = 1
+text_token_limits = [650, 1300]
+
+[catalog]
+extended_demo = false
+seasonality_provider = "legacy"
+mcp_module = "app.mcp_catalog.server"
+search_limit = 3
+
+[logging]
+include_user_messages = true

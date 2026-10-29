@@ -8,11 +8,11 @@ provider responses to the LLM.
 from __future__ import annotations
 
 import hashlib
-import os
 from functools import lru_cache
 
 from pydantic import ValidationError
 
+from app.config import load_settings
 from app.data.catalog import generate_candidates
 from app.mcp_catalog.contracts import (
     BookingResponse,
@@ -40,8 +40,7 @@ def _seasonality_provider(mode: str):
 
 
 def _seasonality():
-    # Read the JSON cache once per process; refresh it before starting Docker.
-    return _seasonality_provider(os.environ.get("TN_SEASONALITY_PROVIDER", "legacy"))
+    return _seasonality_provider(load_settings().catalog.seasonality_provider)
 
 
 def _parse_request(request_json: dict) -> TripRequest:

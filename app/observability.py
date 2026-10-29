@@ -9,11 +9,12 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 import sys
 from contextlib import contextmanager
 from contextvars import ContextVar
 from typing import Any, Iterator
+
+from app.config import load_settings
 
 _request_id: ContextVar[str] = ContextVar("tn_request_id", default="-")
 _session_id: ContextVar[str] = ContextVar("tn_session_id", default="-")
@@ -56,12 +57,7 @@ def _json_value(value: Any) -> Any:
 
 def user_message_value(message: str) -> str:
     """Allow production deployments to keep the flow while hiding user text."""
-    enabled = os.getenv("TN_LOG_USER_MESSAGES", "1").strip().lower() in {
-        "1",
-        "true",
-        "yes",
-        "on",
-    }
+    enabled = load_settings().logging.include_user_messages
     return message if enabled else "<redacted>"
 
 

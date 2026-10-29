@@ -8,10 +8,7 @@ from __future__ import annotations
 
 import logging
 import re
-from dataclasses import dataclass
 from typing import Any, Protocol
-
-from pydantic import BaseModel, Field
 
 from app.agent.clarification import clarification_plan, select_clarification
 from app.agent.intent_pipeline import (
@@ -32,7 +29,21 @@ from app.agent.intent_rules import (
 )
 from app.agent.llm_provider import ParsedTurn, TurnOperation, TurnParser
 from app.agent.orchestrator import _apply_turn
+from app.constants.agent import (
+    CANCEL_BOOKING_PHRASES,
+    DECLINE_COMPROMISE_PHRASES,
+    MEAL_RELAXATION_PHRASES,
+    STOP_RELAXATION_PHRASES,
+    STREAM_STAGE_LABELS,
+)
+from app.constants.patterns import (
+    ADULT_ANSWER_PATTERN,
+    COMPROMISE_ACCEPT_PATTERN,
+    TRAILING_PUNCTUATION_PATTERN,
+    WHITESPACE_PATTERN,
+)
 from app.observability import event as audit_event
+from app.schemas.agent import GraphReply, TravelGraphState
 from app.schemas.request import TripRequest
 from app.services.negotiation import NegotiatedSearch, search_with_plan_changes
 
@@ -47,66 +58,17 @@ class SearchProvider(Protocol):
     def __call__(self, request: TripRequest, **kwargs: Any) -> NegotiatedSearch: ...
 
 
-class TravelGraphState(BaseModel):
-    """Per-thread state; only request changes from validated ParsedTurn are committed."""
-
-    user_message: str = ""
-    request: TripRequest = Field(default_factory=TripRequest)
-    flags: dict[str, bool] = Field(
-        default_factory=lambda: {
-            "allow_nights": False,
-            "allow_date_shift": False,
-            "allow_budget_increase": False,
-        }
-    )
-    version: int = 0
-    stage: str = "new"
-    pending_question: str | None = None
-    options: list[dict[str, Any]] = Field(default_factory=list)
-    compromises: list[dict[str, Any]] = Field(default_factory=list)
-    response: str = ""
-    error: str | None = None
-    # В checkpoint хранятся только JSON-совместимые результаты поиска.
-    reasons: list[str] = Field(default_factory=list)
-    missing: list[str] = Field(default_factory=list)
-    selected_offer_id: str | None = None
-    selected_request_version: int | None = None
-    selected_price_rub: str | None = None
-    booking_reference: str | None = None
-    compromise_request_version: int | None = None
-
-
-@dataclass(frozen=True)
-class GraphReply:
-    status: str
-    message: str
-    version: int
-    request: TripRequest
-    options: tuple[dict[str, Any], ...]
-    compromises: tuple[dict[str, Any], ...]
-
-
 def _simple_constraint_revision(message: str) -> ParsedTurn | None:
     """Recognize only explicit, whole-message relaxation of two constraints.
 
     Do not guess user intentions from substrings of more complex instructions.
     """
-    normalized = re.sub(r"[.!?]+$", "", message.strip().lower())
-    normalized = re.sub(r"\s+", " ", normalized)
+    normalized = TRAILING_PUNCTUATION_PATTERN.sub("", message.strip().lower())
+    normalized = WHITESPACE_PATTERN.sub(" ", normalized)
     # These two utterances are contractual changes, not requests for fresh travel data.
-    if normalized in {
-        "пересадку теперь можно, остальное не меняй",
-        "пересадки теперь допустимы",
-        "пересадки теперь можно",
-        "теперь можно с пересадками",
-    }:
+    if normalized in STOP_RELAXATION_PHRASES:
         return ParsedTurn(intent="revise", clear_constraints=["transport.stops"])
-    if normalized in {
-        "и питание теперь необязательно",
-        "питание теперь необязательно",
-        "питание больше не важно",
-        "питание больше не обязательно",
-    }:
+    if normalized in MEAL_RELAXATION_PHRASES:
         return ParsedTurn(intent="revise", clear_constraints=["hotel.meal_plan"])
     return None
 
@@ -173,7 +135,7 @@ class GraphTravelAgent:
             return {"stage": "error", "response": "Напиши, какой отдых ты ищешь."}
         msg = s.user_message.strip()
         normalized = msg.lower().strip().rstrip(".! ")
-        if normalized in {"отмена", "отменить", "не бронировать", "отказываюсь"}:
+        if normalized in CANCEL_BOOKING_PHRASES:
             return {
                 "stage": "cancelled",
                 "response": "Выбор отменён. Демо-бронирование не выполнялось.",
@@ -181,14 +143,14 @@ class GraphTravelAgent:
                 "selected_request_version": None,
                 "selected_price_rub": None,
             }
-        if normalized in {"отклоняю компромиссы", "не принимаю компромиссы"}:
+        if normalized in DECLINE_COMPROMISE_PHRASES:
             return {
                 "stage": "compromise_declined",
                 "response": "Уступки отклонены. Исходные условия сохранены.",
                 "compromises": [],
                 "compromise_request_version": None,
             }
-        matched = re.fullmatch(r"принимаю компромисс ([1-3])", normalized)
+        matched = COMPROMISE_ACCEPT_PATTERN.fullmatch(normalized)
         if matched:
             idx = int(matched.group(1)) - 1
             if (
@@ -343,7 +305,7 @@ class GraphTravelAgent:
             and s.request.travelers.adults is None
             and s.pending_question
             and "взросл" in s.pending_question.lower()
-            and re.fullmatch(r"[1-9]|[12][0-9]|30", normalized)
+            and ADULT_ANSWER_PATTERN.fullmatch(normalized)
         ):
             turn = ParsedTurn(intent="plan", adults=int(normalized))
             candidate = _apply_turn(s.request, turn)
@@ -977,15 +939,20 @@ class GraphTravelAgent:
                     "Переформулируй сообщение; прежние условия сохранены."
                 )
             )
-            return GraphReply("error", message_text, s.version, s.request, (), ())
+            return GraphReply(
+                status="error",
+                message=message_text,
+                version=s.version,
+                request=s.request,
+            )
         s = self._state(output)
         return GraphReply(
-            s.stage,
-            s.response,
-            s.version,
-            s.request,
-            tuple(s.options),
-            tuple(s.compromises),
+            status=s.stage,
+            message=s.response,
+            version=s.version,
+            request=s.request,
+            options=tuple(s.options),
+            compromises=tuple(s.compromises),
         )
 
     def stream_updates(self, thread_id: str, message: str):
@@ -997,22 +964,12 @@ class GraphTravelAgent:
         if not thread_id.strip():
             raise ValueError("thread_id cannot be empty")
         config = {"configurable": {"thread_id": thread_id}}
-        labels = {
-            "understand": "Проверяю требования…",
-            "route": "Определяю следующий шаг…",
-            "clarify": "Готовлю уточнение…",
-            "search": "Проверяю предложения…",
-            "recommend": "Формирую рекомендацию…",
-            "negotiate": "Проверяю альтернативы…",
-            "cart_review": "Проверяю корзину…",
-            "booking_confirmation": "Подтверждаю демо-бронирование…",
-        }
         try:
             for update in self.graph.stream(
                 {"user_message": message}, config=config, stream_mode="updates"
             ):
                 for name in update:
-                    if name in labels:
+                    if name in STREAM_STAGE_LABELS:
                         audit_event(
                             "agent.node.completed",
                             node=name,
@@ -1020,17 +977,17 @@ class GraphTravelAgent:
                             if isinstance(update[name], dict)
                             else str(type(update[name]).__name__),
                         )
-                        yield (name, labels[name])
+                        yield (name, STREAM_STAGE_LABELS[name])
             state = self._state(self.graph.get_state(config).values)
             yield (
                 "done",
                 GraphReply(
-                    state.stage,
-                    state.response,
-                    state.version,
-                    state.request,
-                    tuple(state.options),
-                    tuple(state.compromises),
+                    status=state.stage,
+                    message=state.response,
+                    version=state.version,
+                    request=state.request,
+                    options=tuple(state.options),
+                    compromises=tuple(state.compromises),
                 ),
             )
         except Exception as exc:
@@ -1040,11 +997,9 @@ class GraphTravelAgent:
             yield (
                 "done",
                 GraphReply(
-                    "error",
-                    "Не удалось обработать сообщение. Прежние условия сохранены.",
-                    state.version,
-                    state.request,
-                    (),
-                    (),
+                    status="error",
+                    message="Не удалось обработать сообщение. Прежние условия сохранены.",
+                    version=state.version,
+                    request=state.request,
                 ),
             )

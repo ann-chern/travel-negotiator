@@ -64,10 +64,16 @@ Compose уже включает расширенный каталог и про�
 Основные каталоги проекта:
 
 - `app/agent/` — разбор намерения, LangGraph и состояние диалога;
+- `app/schemas/` — Pydantic-модели и перечисления контрактов;
+- `app/constants/` — промпты, шаблоны уточнений и правила распознавания;
+- `app/commands/` — ручное обслуживание климатического кэша и снимков;
 - `app/mcp_catalog/` — MCP-сервер и публичные контракты каталога;
 - `app/data/` — синтетические направления, профили и цены;
 - `app/services/` — валидация, ранжирование и сезонность;
 - `app/web/` — FastAPI, SSE и статический интерфейс.
+
+Базовые адреса, таймауты и лимиты находятся в `configs/settings.toml`.
+Секреты и настройки окружения из `.env` имеют приоритет над TOML.
 
 Гибкий период ограничен 31 днем. Поиск проверяет каждую дату внутри периода.
 Жесткие ограничения не ослабляются без явного согласия пользователя.
@@ -97,7 +103,7 @@ API возвращает `X-Request-ID`. Структурированные JSON
 Обновить климатический кэш можно командой:
 
 ```powershell
-uv run python -m scripts.refresh_climate --start-year 2022 --end-year 2025 --include-extended
+uv run python -m app.commands.refresh_climate_cache --start-year 2022 --end-year 2025 --include-extended
 ```
 
 Климатические значения являются историческими средними, а не прогнозом.
@@ -106,7 +112,7 @@ uv run python -m scripts.refresh_climate --start-year 2022 --end-year 2025 --inc
 Исторические наблюдения цен импортируются отдельно:
 
 ```powershell
-uv run python -m scripts.import_snapshots путь\к\файлу.json
+uv run python -m app.commands.import_offer_snapshots путь\к\файлу.json
 ```
 
 Формат показан в `app/data/snapshot_example.json`. Для каждой записи нужны

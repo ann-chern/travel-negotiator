@@ -1,25 +1,12 @@
 """Specialized prompting through the same model and API key as request parsing."""
 
 import json
-import os
 import time
 from typing import Any
 
+from app.config import ApplicationSettings, load_settings
+from app.constants.prompts import TEXT_GENERATION_PROMPTS, TEXT_OUTPUT_STYLE
 from app.observability import event as audit_event
-
-PROMPTS = {
-    "clarification": (
-        "Ты агент уточнений Travel Negotiator. Задай один полезный короткий "
-        "вопрос на русском. Не придумывай условия."
-    ),
-    "recommendation": (
-        "Ты агент рекомендаций. Объясняй лишь проверенные переданные "
-        "предложения. Цены и предложения демонстрационные."
-    ),
-    "negotiation": (
-        "Ты агент переговоров. Объясняй только переданные уступки; никогда не считай их принятыми."
-    ),
-}
 
 
 class YandexTextGenerator:
@@ -29,29 +16,33 @@ class YandexTextGenerator:
         client: Any = None,
         model: str | None = None,
         folder_id: str | None = None,
+        settings: ApplicationSettings | None = None,
     ):
-        folder = folder_id or os.getenv("YANDEX_FOLDER_ID")
+        configuration = settings or load_settings()
+        yandex = configuration.yandex
+        folder = folder_id or yandex.folder_id
         if not folder:
             raise RuntimeError("YANDEX_FOLDER_ID is required")
         if client is None:
-            key = os.getenv("YANDEX_API_KEY")
+            key = yandex.api_key
             if not key:
                 raise RuntimeError("YANDEX_API_KEY is required")
             from openai import OpenAI
 
             client = OpenAI(
                 api_key=key,
-                base_url="https://ai.api.cloud.yandex.net/v1",
+                base_url=yandex.base_url,
                 project=folder,
-                timeout=25.0,
-                max_retries=1,
+                timeout=yandex.text_timeout_seconds,
+                max_retries=yandex.text_max_retries,
             )
         self.client = client
-        name = model or os.getenv("YANDEX_MODEL", "deepseek-v4.1-flash")
+        self.token_limits = yandex.text_token_limits
+        name = model or yandex.model
         self.model = name if name.startswith("gpt://") else f"gpt://{folder}/{name}"
 
     def generate(self, *, task: str, payload: dict[str, Any]) -> str:
-        if task not in PROMPTS:
+        if task not in TEXT_GENERATION_PROMPTS:
             raise ValueError("Unknown task")
         task_payload = dict(payload)
         if task == "recommendation":
@@ -92,14 +83,9 @@ class YandexTextGenerator:
                 for row in task_payload.get("options", [])
                 if isinstance(row, dict)
             ]
-        # Avoid duplicating the full structured offer list in generated text.
-        task_payload["output_style"] = (
-            "Отвечай по-русски, 2–4 коротких предложения, без Markdown-таблиц; "
-            "не дублируй список предложений, он выводится отдельно. "
-            "Никаких выдуманных цен и обещаний бронирования."
-        )
+        task_payload["output_style"] = TEXT_OUTPUT_STYLE
         messages = [
-            {"role": "system", "content": PROMPTS[task]},
+            {"role": "system", "content": TEXT_GENERATION_PROMPTS[task]},
             {
                 "role": "user",
                 "content": json.dumps(task_payload, ensure_ascii=False, default=str),
@@ -113,8 +99,7 @@ class YandexTextGenerator:
             temperature=0.2,
             payload=task_payload,
         )
-        # One bounded retry for a completion cut by max_tokens.
-        for token_limit in (650, 1300):
+        for token_limit in self.token_limits:
             started = time.monotonic()
             response = self.client.chat.completions.create(
                 model=self.model,
