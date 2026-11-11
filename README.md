@@ -150,25 +150,3 @@ uv run python -m app.commands.import_offer_snapshots путь\к\файлу.json
 uv sync --frozen --group dev
 uv run python -m pytest -q
 ```
-
-Проверка покрытия с обязательным порогом 75%:
-
-```powershell
-uv run coverage run -m pytest -q
-uv run coverage report
-```
-
-Проверка MCP-каталога:
-
-```powershell
-uv run python -m app.mcp_catalog.smoke
-```
-
-Файлы `.env` и другие секреты нельзя добавлять в репозиторий.
-
-
-## Скринкаст
-
-Ссылка на яндекс диск: https://disk.360.yandex.ru/i/__kpVSgh3Dr1aA
-
-Ссылка на google drive: https://drive.google.com/file/d/1qQZ3MYfhWAMGde9dFUSJTUhTIk54dJ5j/view?usp=sharing
